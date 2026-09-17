@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>3D Game Design Studio · AGY</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050508;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    #game-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #hud {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      color: #00ffcc;
+      font-family: monospace;
+      font-size: 13px;
+      background: rgba(10, 15, 25, 0.75);
+      border: 1px solid rgba(0, 255, 204, 0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      pointer-events: none;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    .hud-title {
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hud-stat {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 2px;
+      color: #94a3b8;
+    }
+    .hud-val {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+    #controls-hint {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #cbd5e1;
+      font-size: 12px;
+      font-family: monospace;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 8px 18px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div class="hud-title">⚡ 3D GAME STUDIO</div>
+    <div class="hud-stat">FPS: <span id="stat-fps" class="hud-val">60</span></div>
+    <div class="hud-stat">Entities: <span id="stat-entities" class="hud-val">0</span></div>
+    <div class="hud-stat">Renderer: <span class="hud-val">WebGL 2.0</span></div>
+  </div>
+  <div id="controls-hint">🎮 WASD / Drag to Navigate · Space to Jump</div>
+  <canvas id="game-canvas"></canvas>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
