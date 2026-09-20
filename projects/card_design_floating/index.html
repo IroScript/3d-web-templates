@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>EXITO · Floating 3D Cards Complete Showcase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./three.module.min.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- Ambient Studio Lighting Background -->
+  <div class="ambient-glow glow-top-left"></div>
+  <div class="ambient-glow glow-bottom-right"></div>
+  <div class="ambient-glow glow-center"></div>
+
+  <!-- Studio Header Navigation Bar -->
+  <header id="studio-header">
+    <div class="header-left">
+      <div class="brand-badge">
+        <span class="logo-chevron">&lt;</span>
+        <span class="logo-name">EXITO</span>
+      </div>
+      <div class="studio-tag">
+        <span class="tag-dot"></span>
+        <span>ISOMETRIC 3D TAPESTRY</span>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="view-mode-selector">
+        <button class="mode-btn active" id="btn-mode-iso" title="Overview of entire floating cards grid">
+          <span>📐 Overview Grid</span>
+        </button>
+        <button class="mode-btn" id="btn-mode-focus" title="Focus view on active card">
+          <span>🔍 Inspect Card</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button class="control-pill-btn" id="btn-toggle-drift" title="Toggle Floating Wave Animation">
+        <span id="drift-label">✨ Floating Drift: ON</span>
+      </button>
+      <button class="control-pill-btn" id="btn-reset-view" title="Reset Camera to Default Angle">
+        <span>🎯 Reset View</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Interactive 3D WebGL Canvas Layer -->
+  <div id="viewport-container">
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- Floating Interactive Hint -->
+    <div id="instruction-pill" class="instruction-pill">
+      <span class="pill-icon">👆</span>
+      <span class="pill-text">Drag or swipe to explore all floating cards • Click any card to glide into focus</span>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation Card Switcher Bar (Mobile First) -->
+  <footer id="bottom-card-bar">
+    <div class="card-pills-scroll" id="card-pills-container">
+      <button class="card-pill active" data-card="ai">
+        <span class="pill-dot" style="background: #00f3ff;"></span>
+        <span class="pill-name">AI Technology (Quantum Orb)</span>
+      </button>
+      <button class="card-pill" data-card="quantum">
+        <span class="pill-dot" style="background: #a855f7;"></span>
+        <span class="pill-name">Quantum FX (3 Coins)</span>
+      </button>
+      <button class="card-pill" data-card="about">
+        <span class="pill-dot" style="background: #ec4899;"></span>
+        <span class="pill-name">About Us (Magenta Pedestal)</span>
+      </button>
+      <button class="card-pill" data-card="revolution">
+        <span class="pill-dot" style="background: #3b82f6;"></span>
+        <span class="pill-name">Revolutionizing (Pink Ribbon)</span>
+      </button>
+      <button class="card-pill" data-card="trading_top">
+        <span class="pill-dot" style="background: #6366f1;"></span>
+        <span class="pill-name">Trading (Loop Ribbon)</span>
+      </button>
+      <button class="card-pill" data-card="experience">
+        <span class="pill-dot" style="background: #f472b6;"></span>
+        <span class="pill-name">Experience (Discs)</span>
+      </button>
+      <button class="card-pill" data-card="licensed">
+        <span class="pill-dot" style="background: #10b981;"></span>
+        <span class="pill-name">Licensed FX Trading</span>
+      </button>
+      <button class="card-pill" data-card="industries">
+        <span class="pill-dot" style="background: #06b6d4;"></span>
+        <span class="pill-name">Industries Served</span>
+      </button>
+    </div>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

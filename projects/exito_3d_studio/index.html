@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>EXITO · AI & Quantum 3D Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./three.module.min.js",
+      "three/addons/": "./"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- Ambient Studio Lighting Background -->
+  <div class="ambient-glow glow-top-left"></div>
+  <div class="ambient-glow glow-top-right"></div>
+  <div class="ambient-glow glow-center"></div>
+
+  <div id="app-container">
+    <!-- Top Header Navigation -->
+    <header id="main-header">
+      <div class="header-inner">
+        <!-- Logo -->
+        <a href="#home" class="brand-logo" id="brand-logo" title="EXITO Home">
+          <span class="logo-chevron">&lt;</span>
+          <span class="logo-text">EXITO</span>
+        </a>
+
+        <!-- Navigation Links -->
+        <nav class="nav-links" id="desktop-nav">
+          <button class="nav-link active" data-scene="ai">AI Technology</button>
+          <button class="nav-link" data-scene="quantum">Quantum FX</button>
+          <button class="nav-link" data-scene="about">About Us</button>
+          <button class="nav-link" data-scene="revolution">Revolutionizing</button>
+          <button class="nav-link" data-scene="trading">Licensed Trading</button>
+        </nav>
+
+        <!-- Header Actions -->
+        <div class="header-actions">
+          <button class="btn-signin" id="btn-signin">Sign in</button>
+          <!-- Mobile Menu Toggle -->
+          <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle navigation">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Dropdown Nav -->
+      <div class="mobile-nav-panel" id="mobile-nav-panel">
+        <button class="mobile-nav-item active" data-scene="ai">🔮 AI Technology</button>
+        <button class="mobile-nav-item" data-scene="quantum">🪙 Quantum Computing in FX</button>
+        <button class="mobile-nav-item" data-scene="about">🏛️ About Us (Pedestal)</button>
+        <button class="mobile-nav-item" data-scene="revolution">🎗️ Revolutionizing Finance</button>
+        <button class="mobile-nav-item" data-scene="trading">📈 Licensed FX Trading</button>
+      </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main id="hero-stage">
+      <!-- Left Hero Text Content (Dynamic) -->
+      <div class="hero-content-wrapper">
+        <div class="hero-card" id="hero-card">
+          <!-- Category Badge -->
+          <div class="hero-badge-pill" id="card-badge">
+            <span class="pulse-dot"></span>
+            <span id="badge-text">Next-Gen Architecture</span>
+          </div>
+
+          <!-- Dynamic Heading -->
+          <h1 class="hero-title" id="card-title">AI Technology</h1>
+
+          <!-- Dynamic Paragraph Description -->
+          <p class="hero-description" id="card-desc">
+            Artificial intelligence (AI) and FX trading with quantum computers represent cutting-edge technologies that are revolutionising the financial markets.
+          </p>
+
+          <!-- Action Buttons -->
+          <div class="hero-actions">
+            <button class="btn-primary" id="btn-get-started">
+              <span>Get started</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+            <button class="btn-secondary" id="btn-learn-more">Learn more</button>
+          </div>
+
+          <!-- Scroll Down Indicator -->
+          <div class="scroll-indicator" id="scroll-indicator">
+            <span class="scroll-text">SCROLL DOWN</span>
+            <span class="scroll-arrow">↓</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right 3D Interactive WebGL Canvas Viewport -->
+      <div class="canvas-viewport" id="canvas-viewport">
+        <canvas id="webgl-canvas"></canvas>
+
+        <!-- 3D Interactive Floating Hints -->
+        <div class="viewport-overlay">
+          <div class="interaction-hint">
+            <span class="hint-icon">👆</span>
+            <span class="hint-text">Drag to rotate 3D • Pinch to zoom</span>
+          </div>
+
+          <!-- Active Scene Status Chip -->
+          <div class="scene-status-chip">
+            <span class="status-indicator"></span>
+            <span id="active-scene-name">Quantum Hologram</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Interactive Scene Switcher (Mobile First Pill Bar) -->
+    <footer id="bottom-controls">
+      <div class="scene-switcher-pills">
+        <button class="pill-tab active" data-scene="ai">
+          <span class="pill-icon">🔮</span>
+          <span class="pill-label">AI Orb</span>
+        </button>
+        <button class="pill-tab" data-scene="quantum">
+          <span class="pill-icon">🪙</span>
+          <span class="pill-label">Quantum Coins</span>
+        </button>
+        <button class="pill-tab" data-scene="about">
+          <span class="pill-icon">🏛️</span>
+          <span class="pill-label">About Pedestal</span>
+        </button>
+        <button class="pill-tab" data-scene="revolution">
+          <span class="pill-icon">🎗️</span>
+          <span class="pill-label">3D Ribbon</span>
+        </button>
+        <button class="pill-tab" data-scene="trading">
+          <span class="pill-icon">📈</span>
+          <span class="pill-label">FX Trading</span>
+        </button>
+      </div>
+
+      <!-- Quick Action Floating Buttons -->
+      <div class="aux-controls">
+        <button class="aux-btn" id="btn-toggle-auto-spin" title="Toggle Auto Rotation">
+          <span>🔄 Auto-Spin</span>
+        </button>
+        <button class="aux-btn" id="btn-reset-camera" title="Reset View">
+          <span>🎯 Reset</span>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal Dialog for Get Started / Sign In -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="modal-logo">&lt; EXITO</span>
+          <h3>Experience AI & Quantum FX</h3>
+        </div>
+        <button class="btn-close-modal" id="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>You are viewing the interactive 3D WebGL real-time interface reconstructed from the design specification.</p>
+        <div class="modal-stats">
+          <div class="stat-item">
+            <span class="stat-num">100%</span>
+            <span class="stat-label">Code-Native 3D</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">60 FPS</span>
+            <span class="stat-label">WebGL PBR</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">Mobile</span>
+            <span class="stat-label">Touch First</span>
+          </div>
+        </div>
+        <button class="btn-primary full-width" id="btn-modal-ok">Explore 3D Studio</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

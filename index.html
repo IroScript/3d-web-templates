@@ -1,88 +1,783 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>3D Game Design Studio · AGY</title>
+  <title>3D Jungle Street View · স্থানিক ফ্রন্টএন্ড ইন্টারফেস</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
       user-select: none;
+      -webkit-user-select: none;
     }
+
     body, html {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background-color: #050508;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0b1510;
+      font-family: 'Hind Siliguri', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #e2e8f0;
     }
-    #game-canvas {
+
+    #streetview-canvas {
       width: 100%;
       height: 100%;
       display: block;
+      cursor: grab;
     }
-    #hud {
+
+    #streetview-canvas:active {
+      cursor: grabbing;
+    }
+
+    /* ─── Top Street View Header ─── */
+    #streetview-header {
       position: absolute;
-      top: 16px;
-      left: 16px;
-      color: #00ffcc;
-      font-family: monospace;
-      font-size: 13px;
-      background: rgba(10, 15, 25, 0.75);
-      border: 1px solid rgba(0, 255, 204, 0.3);
-      border-radius: 8px;
-      padding: 12px 16px;
+      top: 20px;
+      left: 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(14, 28, 20, 0.72);
+      border: 1px solid rgba(74, 222, 128, 0.25);
+      border-radius: 12px;
+      padding: 10px 18px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
       pointer-events: none;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      z-index: 10;
     }
-    .hud-title {
-      font-weight: bold;
-      font-size: 14px;
-      margin-bottom: 6px;
-      color: #ffffff;
+
+    .header-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(16, 185, 129, 0.1));
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .header-text h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f0fdf4;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade80;
+      display: inline-block;
+    }
+
+    .header-text p {
+      font-size: 12px;
+      color: #86efac;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ─── Top Right Compass Widget ─── */
+    #compass-container {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(14, 28, 20, 0.72);
+      border: 1px solid rgba(74, 222, 128, 0.25);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    #compass-dial {
+      width: 32px;
+      height: 32px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.08s ease-out;
+    }
+
+    .needle-n {
+      position: absolute;
+      top: 2px;
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 12px solid #ef4444;
+    }
+
+    .needle-s {
+      position: absolute;
+      bottom: 2px;
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 12px solid #94a3b8;
+    }
+
+    /* ─── Bottom Navigation Progress Bar (Street View Trail Timeline) ─── */
+    #trail-progress-container {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(520px, 86vw);
+      background: rgba(14, 28, 20, 0.8);
+      border: 1px solid rgba(74, 222, 128, 0.2);
+      border-radius: 30px;
+      padding: 10px 20px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    .progress-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #86efac;
+      white-space: nowrap;
       display: flex;
       align-items: center;
       gap: 6px;
     }
-    .hud-stat {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 2px;
-      color: #94a3b8;
+
+    #trail-progress-track {
+      flex: 1;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+      overflow: hidden;
     }
-    .hud-val {
-      color: #38bdf8;
-      font-weight: 600;
-    }
-    #controls-hint {
+
+    #trail-progress-fill {
       position: absolute;
-      bottom: 16px;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 2%;
+      background: linear-gradient(90deg, #22c55e, #4ade80);
+      border-radius: 4px;
+      box-shadow: 0 0 12px rgba(74, 222, 128, 0.6);
+      transition: width 0.12s ease-out;
+    }
+
+    #trail-percent {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: #4ade80;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ─── Vertical Navigation Slider (Mobile Wheel Alternative) ─── */
+    #vertical-nav-container {
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      background: rgba(14, 28, 20, 0.84);
+      border: 1px solid rgba(74, 222, 128, 0.35);
+      border-radius: 36px;
+      padding: 12px 8px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(34, 197, 94, 0.18);
+      z-index: 25;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    .v-nav-step-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(34, 197, 94, 0.18);
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      color: #86efac;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      touch-action: manipulation;
+      position: relative;
+    }
+
+    .v-nav-step-btn:hover, .v-nav-step-btn:active {
+      background: rgba(74, 222, 128, 0.38);
+      border-color: #4ade80;
+      color: #ffffff;
+      transform: scale(1.08);
+      box-shadow: 0 0 14px rgba(74, 222, 128, 0.6);
+    }
+
+    .v-nav-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #86efac;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .v-slider-track {
+      position: relative;
+      width: 44px;
+      height: clamp(180px, 32vh, 230px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    #v-slider-groove {
+      width: 8px;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+    }
+
+    #v-slider-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2%;
+      background: linear-gradient(180deg, #4ade80, #15803d);
+      border-radius: 6px;
+      box-shadow: 0 0 12px rgba(74, 222, 128, 0.85);
+      transition: height 0.06s ease-out;
+    }
+
+    #v-slider-thumb {
+      position: absolute;
+      left: 50%;
+      bottom: 2%;
+      transform: translate(-50%, 50%);
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #86efac, #22c55e 60%, #15803d);
+      border: 2px solid #f0fdf4;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), 0 0 14px rgba(74, 222, 128, 0.7);
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: bottom 0.06s ease-out, transform 0.12s ease;
+      touch-action: none;
+    }
+
+    #v-slider-thumb:active, #v-slider-thumb.dragging {
+      cursor: grabbing;
+      transform: translate(-50%, 50%) scale(1.18);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8), 0 0 22px rgba(74, 222, 128, 0.95);
+    }
+
+    .thumb-icon {
+      font-size: 16px;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    #v-slider-badge {
+      position: absolute;
+      right: 48px;
+      background: rgba(14, 28, 20, 0.95);
+      border: 1px solid rgba(74, 222, 128, 0.5);
+      border-radius: 8px;
+      padding: 3px 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #4ade80;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+      opacity: 0.92;
+    }
+
+    /* ─── Responsive Adjustments for Mobile First ─── */
+    @media (max-width: 640px) {
+      #vertical-nav-container {
+        right: 10px;
+        padding: 8px 6px;
+      }
+      .v-slider-track {
+        height: 180px;
+      }
+      .v-nav-step-btn {
+        width: 36px;
+        height: 36px;
+      }
+      #trail-progress-container {
+        left: 12px;
+        transform: none;
+        width: calc(100vw - 84px);
+        bottom: 14px;
+        padding: 8px 12px;
+        gap: 10px;
+      }
+      .progress-label {
+        font-size: 11px;
+      }
+      #trail-percent {
+        font-size: 11px;
+        min-width: 30px;
+      }
+      #streetview-header {
+        top: 12px;
+        left: 12px;
+        padding: 8px 12px;
+      }
+      #compass-container {
+        top: 12px;
+        right: 12px;
+      }
+    }
+
+    /* ─── Bottom Floating Interaction Hint ─── */
+    #streetview-hint {
+      position: absolute;
+      bottom: 80px;
       left: 50%;
       transform: translateX(-50%);
-      color: #cbd5e1;
-      font-size: 12px;
-      font-family: monospace;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
-      padding: 8px 18px;
+      background: rgba(10, 20, 15, 0.85);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+      color: #dcfce7;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 20px;
+      border-radius: 24px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 8px;
       pointer-events: none;
+      transition: opacity 0.8s ease, transform 0.8s ease;
+      z-index: 10;
+    }
+
+    #streetview-hint.fade-out {
+      opacity: 0;
+      transform: translateX(-50%) translateY(12px);
+    }
+
+    /* ─── Spatial UI World-Anchored Cards Container ─── */
+    #spatial-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 5;
+    }
+
+    .spatial-node-card {
+      position: absolute;
+      top: 0;
+      left: 0;
+      min-width: 240px;
+      max-width: 320px;
+      background: rgba(14, 28, 20, 0.82);
+      border: 1px solid rgba(74, 222, 128, 0.35);
+      border-radius: 14px;
+      padding: 12px 14px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(34, 197, 94, 0.15);
+      transition: transform 0.15s ease-out, opacity 0.25s ease, border-color 0.2s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .spatial-node-card:hover {
+      border-color: rgba(74, 222, 128, 0.7);
+      background: rgba(18, 36, 26, 0.9);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 25px rgba(74, 222, 128, 0.3);
+    }
+
+    .spatial-node-card.in-range {
+      border-color: rgba(74, 222, 128, 0.6);
+    }
+
+    .spatial-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .spatial-icon {
+      font-size: 22px;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(74, 222, 128, 0.15);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .spatial-info {
+      flex: 1;
+    }
+
+    .spatial-cat {
+      font-size: 11px;
+      font-weight: 600;
+      color: #86efac;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .spatial-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f0fdf4;
+    }
+
+    .spatial-card-body {
+      margin-top: 4px;
+    }
+
+    .spatial-desc {
+      font-size: 12px;
+      line-height: 1.4;
+      color: #cbd5e1;
+      margin-bottom: 10px;
+    }
+
+    .spatial-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .spatial-btn {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      color: #ecfdf5;
+      font-size: 12px;
+      font-family: 'Hind Siliguri', sans-serif;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.18s ease;
+    }
+
+    .spatial-btn:hover {
+      background: rgba(74, 222, 128, 0.35);
+      border-color: #86efac;
+      transform: translateY(-1px);
+    }
+
+    .spatial-btn:active {
+      transform: translateY(0);
+    }
+
+    /* ─── Spatial Inspection Modal ─── */
+    #spatial-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(4, 10, 7, 0.65);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 100;
+    }
+
+    #spatial-modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      width: min(460px, 90vw);
+      background: rgba(14, 28, 20, 0.94);
+      border: 1px solid rgba(74, 222, 128, 0.35);
+      border-radius: 20px;
+      padding: 26px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(74, 222, 128, 0.2);
+      position: relative;
+      transform: scale(0.92);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #spatial-modal.active .modal-box {
+      transform: scale(1);
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .modal-close-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .modal-icon-badge {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(74, 222, 128, 0.2);
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+    }
+
+    .modal-cat {
+      font-size: 12px;
+      font-weight: 600;
+      color: #86efac;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .modal-title-text {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f0fdf4;
+    }
+
+    .modal-description {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+    }
+
+    .modal-action-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .modal-action-btn {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      color: #f0fdf4;
+      font-size: 14px;
+      font-family: 'Hind Siliguri', sans-serif;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .modal-action-btn:hover {
+      background: rgba(74, 222, 128, 0.35);
+      border-color: #86efac;
+      transform: translateX(3px);
+    }
+
+    /* ─── Notification Toast ─── */
+    #spatial-toast {
+      position: absolute;
+      top: 84px;
+      right: 24px;
+      min-width: 260px;
+      max-width: 360px;
+      background: rgba(14, 28, 20, 0.92);
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      border-radius: 12px;
+      padding: 12px 16px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      transform: translateY(-20px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 90;
+    }
+
+    #spatial-toast.show {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .toast-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #4ade80;
+      margin-bottom: 2px;
+    }
+
+    .toast-msg {
+      font-size: 12px;
+      color: #cbd5e1;
+      line-height: 1.4;
     }
   </style>
 </head>
 <body>
-  <div id="hud">
-    <div class="hud-title">⚡ 3D GAME STUDIO</div>
-    <div class="hud-stat">FPS: <span id="stat-fps" class="hud-val">60</span></div>
-    <div class="hud-stat">Entities: <span id="stat-entities" class="hud-val">0</span></div>
-    <div class="hud-stat">Renderer: <span class="hud-val">WebGL 2.0</span></div>
+  <!-- Street View Header -->
+  <div id="streetview-header">
+    <div class="header-badge">🌿</div>
+    <div class="header-text">
+      <h1>রেইনফরেস্ট ট্রেইল <span class="live-dot"></span></h1>
+      <p>3D SPATIAL STREET VIEW</p>
+    </div>
   </div>
-  <div id="controls-hint">🎮 WASD / Drag to Navigate · Space to Jump</div>
-  <canvas id="game-canvas"></canvas>
+
+  <!-- Street View Compass -->
+  <div id="compass-container" title="দৃষ্টির কোণ (Heading)">
+    <div id="compass-dial">
+      <div class="needle-n"></div>
+      <div class="needle-s"></div>
+    </div>
+  </div>
+
+  <!-- World-Anchored Spatial UI Container -->
+  <div id="spatial-container"></div>
+
+  <!-- Interaction Controls Hint -->
+  <div id="streetview-hint">
+    <span>📱</span> ডানের স্লাইডার টেনে অথবা 🖱️ মাউস হুইল ঘুরিয়ে ট্রেইলে এগোও
+  </div>
+
+  <!-- Vertical Navigation Slider (Mobile Wheel Alternative) -->
+  <div id="vertical-nav-container" title="উল্লম্ব ট্রেইল নেভিগেশন (হুইল বিকল্প)">
+    <button id="v-nav-up-btn" class="v-nav-step-btn" title="সামনে এগোও (Step Forward)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="18 15 12 9 6 15"></polyline>
+      </svg>
+    </button>
+
+    <div id="v-slider-track" class="v-slider-track" title="টেনে বা স্পর্শ করে ট্রেইলে সামনে-পেছনে যান">
+      <div id="v-slider-groove">
+        <div id="v-slider-fill"></div>
+      </div>
+      <div id="v-slider-thumb">
+        <span class="thumb-icon">🌿</span>
+        <div id="v-slider-badge">২%</div>
+      </div>
+    </div>
+
+    <button id="v-nav-down-btn" class="v-nav-step-btn" title="পেছনে যাও (Step Backward)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Trail Navigation Progress Track -->
+  <div id="trail-progress-container">
+    <div class="progress-label">
+      <span>📍</span> ট্রেইল দূরত্ব
+    </div>
+    <div id="trail-progress-track" title="ট্রেইলের যেকোনো অংশে ক্লিক করে সেখানে যান">
+      <div id="trail-progress-fill"></div>
+    </div>
+    <div id="trail-percent">২%</div>
+  </div>
+
+  <!-- Spatial Inspection Modal -->
+  <div id="spatial-modal">
+    <div class="modal-box">
+      <button class="modal-close-btn" id="modal-close-btn">✕</button>
+      <div class="modal-header">
+        <div class="modal-icon-badge" id="modal-icon">🌳</div>
+        <div>
+          <div class="modal-cat" id="modal-category">ক্যাটাগরি</div>
+          <div class="modal-title-text" id="modal-title">নোড নাম</div>
+        </div>
+      </div>
+      <div class="modal-description" id="modal-desc">
+        বর্ণনা এখানে প্রদর্শিত হবে।
+      </div>
+      <div class="modal-action-group" id="modal-actions"></div>
+    </div>
+  </div>
+
+  <!-- Feedback Toast -->
+  <div id="spatial-toast"></div>
+
+  <!-- Primary 3D WebGL Canvas -->
+  <canvas id="streetview-canvas"></canvas>
+
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

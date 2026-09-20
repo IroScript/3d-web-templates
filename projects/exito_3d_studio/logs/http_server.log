@@ -1,0 +1,10 @@
+127.0.0.1 - - [20/Sep/2026 16:25:19] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Sep/2026 16:26:19] "HEAD / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Sep/2026 16:26:45] "HEAD /exito_3d_studio.zip HTTP/1.1" 200 -
+127.0.0.1 - - [20/Sep/2026 16:38:25] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Sep/2026 16:38:26] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [20/Sep/2026 16:38:26] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [20/Sep/2026 16:38:27] "GET /three.module.min.js HTTP/1.1" 200 -
+127.0.0.1 - - [20/Sep/2026 16:38:27] "GET /OrbitControls.js HTTP/1.1" 200 -
+127.0.0.1 - - [20/Sep/2026 16:38:29] code 404, message File not found
+127.0.0.1 - - [20/Sep/2026 16:38:29] "GET /favicon.ico HTTP/1.1" 404 -

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CYBERPUNK HOVER RACER 3D · High-Octane Sci-Fi Racing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./three.module.min.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- 3D Canvas Container -->
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Top In-Game HUD -->
+    <header id="game-hud" class="hud-layer hidden">
+      <div class="hud-top-bar">
+        <!-- Score & Multiplier -->
+        <div class="hud-box hud-score">
+          <div class="hud-label">SCORE</div>
+          <div class="hud-value" id="hud-score-val">0</div>
+        </div>
+
+        <!-- Speed Gauge & Boost -->
+        <div class="hud-box hud-speed">
+          <div class="hud-label">VELOCITY</div>
+          <div class="speed-readout">
+            <span class="hud-value-large" id="hud-speed-val">0</span>
+            <span class="hud-unit">KM/H</span>
+          </div>
+          <div class="hud-bar-container">
+            <div class="hud-bar-fill speed-bar" id="hud-speed-bar"></div>
+          </div>
+        </div>
+
+        <!-- Shield Health -->
+        <div class="hud-box hud-shield">
+          <div class="hud-label">SHIELD INTEGRITY</div>
+          <div class="hud-bar-container">
+            <div class="hud-bar-fill shield-bar" id="hud-shield-bar" style="width: 100%;"></div>
+          </div>
+          <div class="shield-pct" id="hud-shield-text">100%</div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="hud-actions">
+          <button class="hud-btn" id="btn-audio" title="Toggle Sound">🔊</button>
+          <button class="hud-btn" id="btn-pause" title="Pause Game">⏸</button>
+        </div>
+      </div>
+
+      <!-- In-Game Notification Banner -->
+      <div id="hud-alert" class="hud-alert hidden">HYPER BOOST ACTIVATED!</div>
+    </header>
+
+    <!-- Mobile Touch Controls Overlay -->
+    <div id="mobile-controls" class="hud-layer hidden">
+      <!-- Left / Right Steer Buttons -->
+      <div class="touch-steer-container">
+        <button class="touch-btn steer-btn" id="btn-touch-left" aria-label="Steer Left">
+          <span>◀</span>
+        </button>
+        <button class="touch-btn steer-btn" id="btn-touch-right" aria-label="Steer Right">
+          <span>▶</span>
+        </button>
+      </div>
+
+      <!-- Action Buttons (Brake & Boost) -->
+      <div class="touch-actions-container">
+        <button class="touch-btn brake-btn" id="btn-touch-brake" aria-label="Air Brake">
+          <span class="btn-subtext">BRAKE</span>
+          <span>🛑</span>
+        </button>
+        <button class="touch-btn boost-btn" id="btn-touch-boost" aria-label="Hyper Boost">
+          <span class="btn-subtext">BOOST</span>
+          <span>⚡</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Start Screen Overlay -->
+    <div id="screen-start" class="screen-overlay">
+      <div class="screen-card">
+        <div class="game-badge">3D SCI-FI GAME ENGINE</div>
+        <h1 class="game-title">
+          <span class="title-cyan">CYBERPUNK</span><br>
+          <span class="title-pink">HOVER RACER</span>
+        </h1>
+        <p class="game-subtitle">
+          Piloting an experimental anti-gravity hovercraft down the infinite Neo-Tokyo neon hyper-grid.
+        </p>
+
+        <div class="game-instructions">
+          <div class="inst-item">
+            <span class="inst-icon">💎</span>
+            <span>Collect <b>Cyan Quantum Orbs</b> for score</span>
+          </div>
+          <div class="inst-item">
+            <span class="inst-icon">⚡</span>
+            <span>Pass through <b>Golden Boost Rings</b> for hyper-speed</span>
+          </div>
+          <div class="inst-item">
+            <span class="inst-icon">⚠️</span>
+            <span>Avoid <b>Red Laser Barriers</b> & energy pylons</span>
+          </div>
+        </div>
+
+        <div class="controls-tips">
+          <div class="tip-block">
+            <span class="tip-device">📱 Mobile:</span>
+            <span>Touch Left/Right buttons or drag screen to steer. Tap Boost ⚡.</span>
+          </div>
+          <div class="tip-block">
+            <span class="tip-device">💻 Desktop:</span>
+            <span>[A] [D] or [◀] [▶] to Steer • [W] or [Space] Boost • [S] Brake</span>
+          </div>
+        </div>
+
+        <button class="btn-launch" id="btn-start-game">
+          <span>LAUNCH HOVERCRAFT</span>
+          <span class="btn-glow"></span>
+        </button>
+
+        <div class="high-score-tag">
+          BEST SCORE: <span id="start-high-score">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Screen Overlay -->
+    <div id="screen-gameover" class="screen-overlay hidden">
+      <div class="screen-card gameover-card">
+        <div class="gameover-header">MISSION TERMINATED</div>
+        <h2 class="gameover-title">SYSTEM COMPROMISED</h2>
+
+        <div class="gameover-stats">
+          <div class="stat-box">
+            <span class="stat-label">FINAL SCORE</span>
+            <span class="stat-value" id="go-final-score">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">DISTANCE</span>
+            <span class="stat-value" id="go-distance">0 M</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">ORBS COLLECTED</span>
+            <span class="stat-value" id="go-orbs">0</span>
+          </div>
+        </div>
+
+        <button class="btn-launch" id="btn-restart-game">
+          <span>REBOOT & RETRY</span>
+          <span class="btn-glow"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div id="screen-pause" class="screen-overlay hidden">
+      <div class="screen-card">
+        <h2 class="game-title title-cyan">SIMULATION PAUSED</h2>
+        <p class="game-subtitle">Hovercraft engines throttled to idle standby.</p>
+        <button class="btn-launch" id="btn-resume-game">
+          <span>RESUME MISSION</span>
+          <span class="btn-glow"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./game.js"></script>
+</body>
+</html>
