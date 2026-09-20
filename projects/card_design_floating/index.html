@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>EXITO · Floating 3D Cards Complete Showcase</title>
+  <title>EXITO · Infinite Floating 3D Cards</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
@@ -31,27 +31,22 @@
       </div>
       <div class="studio-tag">
         <span class="tag-dot"></span>
-        <span>ISOMETRIC 3D TAPESTRY</span>
+        <span>INFINITE 3D CARDS</span>
       </div>
     </div>
 
     <div class="header-center">
-      <div class="view-mode-selector">
-        <button class="mode-btn active" id="btn-mode-iso" title="Overview of entire floating cards grid">
-          <span>📐 Overview Grid</span>
-        </button>
-        <button class="mode-btn" id="btn-mode-focus" title="Focus view on active card">
-          <span>🔍 Inspect Card</span>
-        </button>
+      <div class="mode-badge-pill" id="grid-status-pill">
+        <span>🌐 Unlimited Infinite Grid</span>
       </div>
     </div>
 
     <div class="header-right">
       <button class="control-pill-btn" id="btn-toggle-drift" title="Toggle Floating Wave Animation">
-        <span id="drift-label">✨ Floating Drift: ON</span>
+        <span id="drift-label">✨ Drift: ON</span>
       </button>
-      <button class="control-pill-btn" id="btn-reset-view" title="Reset Camera to Default Angle">
-        <span>🎯 Reset View</span>
+      <button class="control-pill-btn" id="btn-reset-view" title="Reset Camera to Center">
+        <span>🎯 Reset</span>
       </button>
     </div>
   </header>
@@ -63,44 +58,54 @@
     <!-- Floating Interactive Hint -->
     <div id="instruction-pill" class="instruction-pill">
       <span class="pill-icon">👆</span>
-      <span class="pill-text">Drag or swipe to explore all floating cards • Click any card to glide into focus</span>
+      <span class="pill-text">Pan infinitely in any direction • Click or hold any card to bring flat to screen</span>
     </div>
+
+    <!-- Stationary Flat Card Close Action (Appears when a card is brought flat to front) -->
+    <button id="btn-close-flat" class="btn-close-flat hidden" title="Return card to floating 3D grid">
+      <span class="close-icon">&times;</span>
+      <span class="close-text">Return to Floating Grid</span>
+    </button>
   </div>
 
-  <!-- Bottom Navigation Card Switcher Bar (Mobile First) -->
+  <!-- Bottom Navigation Quick Switcher Bar -->
   <footer id="bottom-card-bar">
     <div class="card-pills-scroll" id="card-pills-container">
-      <button class="card-pill active" data-card="ai">
+      <button class="card-pill active" data-type="0">
         <span class="pill-dot" style="background: #00f3ff;"></span>
-        <span class="pill-name">AI Technology (Quantum Orb)</span>
+        <span class="pill-name">AI Technology</span>
       </button>
-      <button class="card-pill" data-card="quantum">
+      <button class="card-pill" data-type="1">
         <span class="pill-dot" style="background: #a855f7;"></span>
-        <span class="pill-name">Quantum FX (3 Coins)</span>
+        <span class="pill-name">Quantum FX</span>
       </button>
-      <button class="card-pill" data-card="about">
+      <button class="card-pill" data-type="2">
         <span class="pill-dot" style="background: #ec4899;"></span>
-        <span class="pill-name">About Us (Magenta Pedestal)</span>
+        <span class="pill-name">About Us (Pedestal)</span>
       </button>
-      <button class="card-pill" data-card="revolution">
+      <button class="card-pill" data-type="3">
         <span class="pill-dot" style="background: #3b82f6;"></span>
-        <span class="pill-name">Revolutionizing (Pink Ribbon)</span>
+        <span class="pill-name">Revolutionizing</span>
       </button>
-      <button class="card-pill" data-card="trading_top">
+      <button class="card-pill" data-type="4">
         <span class="pill-dot" style="background: #6366f1;"></span>
-        <span class="pill-name">Trading (Loop Ribbon)</span>
+        <span class="pill-name">Trading (Loop)</span>
       </button>
-      <button class="card-pill" data-card="experience">
+      <button class="card-pill" data-type="5">
         <span class="pill-dot" style="background: #f472b6;"></span>
-        <span class="pill-name">Experience (Discs)</span>
+        <span class="pill-name">Experience</span>
       </button>
-      <button class="card-pill" data-card="licensed">
+      <button class="card-pill" data-type="6">
         <span class="pill-dot" style="background: #10b981;"></span>
-        <span class="pill-name">Licensed FX Trading</span>
+        <span class="pill-name">Licensed FX</span>
       </button>
-      <button class="card-pill" data-card="industries">
+      <button class="card-pill" data-type="7">
         <span class="pill-dot" style="background: #06b6d4;"></span>
-        <span class="pill-name">Industries Served</span>
+        <span class="pill-name">Industries</span>
+      </button>
+      <button class="card-pill" data-type="8">
+        <span class="pill-dot" style="background: #eab308;"></span>
+        <span class="pill-name">Edge AI</span>
       </button>
     </div>
   </footer>
