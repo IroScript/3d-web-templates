@@ -453,6 +453,47 @@ for (let r = 0; r < ROWS; r++) {
 // ─── Flat-to-Screen Animation Controller ─────────────────────────
 let activeFlatCard = null;
 let isDrifting = true;
+let flatOpenedTime = 0;
+
+function calculateFlatTransform() {
+  const dist = 18.0;
+  const vFovRad = (camera.fov * Math.PI) / 180;
+  const visibleH = 2 * dist * Math.tan(vFovRad / 2);
+  const visibleW = visibleH * camera.aspect;
+
+  // Portrait (mobile) vs Landscape (desktop)
+  const isPortrait = camera.aspect < 1.0;
+  // On mobile portrait, card takes at most 88% width and 52% height (leaving ample margin for header & buttons)
+  // On landscape/desktop, card takes at most 70% width and 60% height
+  const maxOccupyW = isPortrait ? 0.88 : 0.70;
+  const maxOccupyH = isPortrait ? 0.52 : 0.60;
+
+  const maxAllowedW = visibleW * maxOccupyW;
+  const maxAllowedH = visibleH * maxOccupyH;
+
+  const scaleByW = maxAllowedW / CARD_WIDTH;
+  const scaleByH = maxAllowedH / CARD_HEIGHT;
+  const fitScale = Math.min(scaleByW, scaleByH);
+
+  // Calculate forward point squarely along camera optical centerline
+  const forwardDir = new THREE.Vector3();
+  camera.getWorldDirection(forwardDir);
+  const targetWorldPos = camera.position.clone().add(forwardDir.multiplyScalar(dist));
+
+  // Convert to local coordinates in tapestryMasterGroup
+  tapestryMasterGroup.updateMatrixWorld(true);
+  const targetLocalPos = tapestryMasterGroup.worldToLocal(targetWorldPos);
+
+  // Calculate Target Quaternion so the card becomes 100% FLAT to the camera (0° tilt)
+  const masterInverseQuat = tapestryMasterGroup.quaternion.clone().invert();
+  const targetLocalQuat = masterInverseQuat.multiply(camera.quaternion);
+
+  return {
+    localPos: targetLocalPos,
+    localQuat: targetLocalQuat,
+    scale: fitScale
+  };
+}
 
 function bringCardFlatToScreen(cardGroup) {
   if (activeFlatCard && activeFlatCard !== cardGroup) {
@@ -460,33 +501,21 @@ function bringCardFlatToScreen(cardGroup) {
   }
 
   activeFlatCard = cardGroup;
+  flatOpenedTime = Date.now();
   cardGroup.userData.isFlat = true;
+  cardGroup.renderOrder = 999;
 
-  // 1. Calculate Target Position in World Space (Centering squarely in front of camera)
-  const forwardDir = new THREE.Vector3();
-  camera.getWorldDirection(forwardDir);
-  const targetDist = isMobile ? 12.5 : 10.0;
-  const targetWorldPos = camera.position.clone().add(forwardDir.multiplyScalar(targetDist));
-
-  // Convert to local position in tapestryMasterGroup
-  const targetLocalPos = tapestryMasterGroup.worldToLocal(targetWorldPos);
-  cardGroup.userData.targetLocalPos.copy(targetLocalPos);
-
-  // 2. Calculate Target Quaternion so the card becomes 100% FLAT to the camera (0° tilt)
-  const masterInverseQuat = tapestryMasterGroup.quaternion.clone().invert();
-  const targetLocalQuat = masterInverseQuat.multiply(camera.quaternion);
-  cardGroup.userData.targetLocalQuat.copy(targetLocalQuat);
-
-  // 3. Target Scale: fill screen elegantly
-  const scaleVal = isMobile ? 1.05 : 1.15;
-  cardGroup.userData.targetScale.set(scaleVal, scaleVal, scaleVal);
+  const transform = calculateFlatTransform();
+  cardGroup.userData.targetLocalPos.copy(transform.localPos);
+  cardGroup.userData.targetLocalQuat.copy(transform.localQuat);
+  cardGroup.userData.targetScale.set(transform.scale, transform.scale, transform.scale);
 
   // Temporarily pause controls pan fighting while card is stationary in front
   controls.enabled = false;
 
   // Show Close Button
   btnCloseFlat.classList.remove('hidden');
-  instructionPill.innerHTML = '<span class="pill-icon">✨</span><span class="pill-text">Card is flat in front of screen • Tap card or button to return to 3D grid</span>';
+  instructionPill.innerHTML = '<span class="pill-icon">✨</span><span class="pill-text">Card view active • Tap button or outside to return</span>';
 
   // Highlight bottom pill
   updateActivePill(cardGroup.userData.designIdx);
@@ -496,6 +525,7 @@ function returnCardToGrid(cardGroup = activeFlatCard) {
   if (!cardGroup) return;
 
   cardGroup.userData.isFlat = false;
+  cardGroup.renderOrder = 0;
 
   // Return to current wrapped grid position
   cardGroup.userData.targetLocalPos.copy(cardGroup.userData.currentGridPos);
@@ -506,7 +536,7 @@ function returnCardToGrid(cardGroup = activeFlatCard) {
   controls.enabled = true;
 
   btnCloseFlat.classList.add('hidden');
-  instructionPill.innerHTML = '<span class="pill-icon">👆</span><span class="pill-text">Pan infinitely in any direction • Click or hold any card to bring flat to screen</span>';
+  instructionPill.innerHTML = '<span class="pill-icon">👆</span><span class="pill-text">Pan infinitely in any direction • Click or hold any card to bring flat</span>';
 }
 
 btnCloseFlat.addEventListener('click', (e) => {
@@ -569,14 +599,15 @@ function onPointerMove(e) {
 
 function onPointerUp(e) {
   clearTimeout(holdTimeout);
-  const pressDuration = Date.now() - pointerDownTime;
   const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
 
   // If tap/click without drag (quick click or tap)
   if (dist < 8) {
     if (activeFlatCard) {
-      // Tap while flat -> return card to grid!
-      returnCardToGrid();
+      // If card was just brought flat via hold (<350ms ago), don't dismiss on this finger release!
+      if (Date.now() - flatOpenedTime > 350) {
+        returnCardToGrid();
+      }
     } else if (heldCard) {
       // Tap on card -> bring flat to screen!
       bringCardFlatToScreen(heldCard);
@@ -727,7 +758,12 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 
-  if (!activeFlatCard) {
+  if (activeFlatCard) {
+    const transform = calculateFlatTransform();
+    activeFlatCard.userData.targetLocalPos.copy(transform.localPos);
+    activeFlatCard.userData.targetLocalQuat.copy(transform.localQuat);
+    activeFlatCard.userData.targetScale.set(transform.scale, transform.scale, transform.scale);
+  } else {
     camera.position.z = isNowMobile ? 42.0 : 34.0;
   }
 });
