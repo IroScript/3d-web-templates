@@ -1,0 +1,748 @@
+# 3D ARTICLE / BLOG CARD UX TRANSFORMATION — MASTER IMPLEMENTATION PROMPT
+
+তুমি বর্তমান **EXITO 3D Floating Cards** project-এর base design, visual language এবং 3D identity বজায় রেখে এটিকে একটি **future-ready, user-friendly 3D Article / Blog Publishing Interface**-এ রূপান্তর করবে।
+
+বর্তমান implementation ও architecture সম্পূর্ণভাবে inspect করো। বর্তমান project specification অনুযায়ী এটি Three.js + Vanilla HTML/CSS + OrbitControls ভিত্তিক এবং বর্তমানে 25-card procedural/infinite floating matrix ব্যবহার করছে।
+
+---
+
+## 1. সবচেয়ে গুরুত্বপূর্ণ নির্দেশনা
+
+**BASE DESIGN REPLACE করা যাবে না।**
+
+বর্তমান:
+
+* 3D floating card concept
+* glassmorphism
+* futuristic visual language
+* lighting
+* depth
+* floating motion
+* spatial arrangement
+* embedded 3D elements
+* flat-to-screen transition
+* Three.js architecture
+
+—এসবের মূল identity বজায় থাকবে। বর্তমান card-গুলো 3D floating spatial interface হিসেবে থাকবে।
+
+কিন্তু বর্তমান design-কে **demo / visual experiment থেকে real Article Publishing UI**-তে রূপান্তর করতে হবে।
+
+---
+
+# 2. মূল সমস্যা সমাধান
+
+বর্তমান system-এ card সংখ্যা procedural/infinite হলেও user-এর কাছে এটি বাস্তব article library-এর মতো ব্যবহারযোগ্য নয়।
+
+বর্তমান 25-card matrix এবং infinite wrapping behaviour বজায় রাখার প্রয়োজন নেই যদি সেটি usability কমায়।
+
+**Target হলো:**
+
+> 3D থাকবে, কিন্তু ব্যবহারকারী যেন মনে না করে যে সে কোনো 3D game বা technical demo ব্যবহার করছে।
+
+তার মনে হবে:
+
+> “আমি একটি futuristic 3D article library ব্যবহার করছি।”
+
+---
+
+# 3. CARD = ARTICLE
+
+এখন থেকে প্রতিটি floating card একটি **Article/Post entity** হিসেবে design করা হবে।
+
+প্রতিটি card-এর মধ্যে conceptually থাকবে:
+
+* Article cover / visual
+* Category
+* Title
+* Short excerpt
+* Author
+* Publication date
+* Reading time
+* Tags
+* Article status
+* Open / Read action
+* Bookmark/Favorite
+* Optional metadata
+
+Card শুধু decorative object হবে না।
+
+**প্রতিটি card বাস্তব article-এর entry point হিসেবে কাজ করবে।**
+
+---
+
+# 4. HARD-CODED 3D — কিন্তু HARD-CODED UX নয়
+
+বর্তমানে 3D cards hard-coded/procedural হওয়া acceptable।
+
+এটি এখনই মূল API-এর সঙ্গে connect করতে হবে না।
+
+**API integration এখন করবে না।**
+
+কিন্তু architecture এমনভাবে তৈরি করবে যেন ভবিষ্যতে API থেকে:
+
+```text
+Article[]
+```
+
+পেলে সেই data দিয়ে unlimited cards automatically render করা যায়।
+
+অর্থাৎ:
+
+### এখন:
+
+```text
+Hardcoded Article Data
+        ↓
+Article Card Renderer
+        ↓
+3D Floating Cards
+```
+
+### ভবিষ্যতে:
+
+```text
+API
+ ↓
+Article Data
+ ↓
+Article Card Renderer
+ ↓
+3D Floating Cards
+```
+
+**3D rendering layer এবং article-data layer আলাদা রাখবে।**
+
+API না থাকলেও interface সম্পূর্ণ usable এবং realistic demo হিসেবে কাজ করতে হবে।
+
+---
+
+# 5. UNLIMITED CARDS
+
+বর্তমানে 25টি active card-এর fixed matrix রয়েছে।
+
+এটি শুধু technical/demo limitation হিসেবে বিবেচনা করো।
+
+Final UX-এ:
+
+> **Article সংখ্যা unlimited হতে পারবে।**
+
+কিন্তু screen-এ একসঙ্গে শত শত card render করবে না।
+
+এটি অত্যন্ত গুরুত্বপূর্ণ।
+
+### ভুল:
+
+```text
+1000 articles
+↓
+1000 THREE.Mesh
+↓
+সব screen-এ render
+```
+
+### সঠিক:
+
+```text
+Unlimited Article Dataset
+        ↓
+Virtualized / Visible Article Window
+        ↓
+Only required 3D cards rendered
+```
+
+অর্থাৎ data unlimited হতে পারে, কিন্তু active WebGL objects controlled থাকবে।
+
+---
+
+# 6. USER-FRIENDLY NAVIGATION
+
+বর্তমান infinite pan behaviour user-এর জন্য optional হবে।
+
+User-কে বাধ্য করা যাবে না যে:
+
+> “Article খুঁজতে হলে আমাকে 3D space ঘুরাতে হবে।”
+
+বরং তিনটি navigation layer থাকবে:
+
+### Layer A — Spatial 3D browsing
+
+User চাইলে:
+
+* drag
+* pan
+* scroll
+* explore
+* zoom
+
+করে floating article cards দেখতে পারবে।
+
+### Layer B — Normal article navigation
+
+একটি clear:
+
+**Search**
+
+**Categories**
+
+**Latest**
+
+**Popular**
+
+**Saved**
+
+**My Articles**
+
+জাতীয় navigation থাকবে।
+
+### Layer C — Direct article opening
+
+Card click/tap করলে:
+
+```text
+3D Card
+   ↓
+Focused Article
+   ↓
+Read Article
+```
+
+---
+
+# 7. CARD INTERACTION
+
+বর্তমান flat-to-screen transition architecture ব্যবহার করা যেতে পারে। বর্তমান implementation-এ selected card camera-facing flat stationary view-তে আসে।
+
+কিন্তু UX আরও পরিষ্কার করতে হবে।
+
+Card click করলে:
+
+```text
+Floating Card
+      ↓
+Smooth Focus Animation
+      ↓
+Focused Article Preview
+      ↓
+[READ ARTICLE]
+```
+
+User যেন বুঝতে পারে:
+
+> “এই card-টি আমি খুলেছি।”
+
+---
+
+# 8. IMPORTANT — CARD যেন SCREEN BLOCK না করে
+
+বর্তমান flat card পুরো screen-এর সামনে চলে আসে।
+
+এটি পরিবর্তন করে:
+
+### Desktop
+
+Large focused article preview:
+
+```text
+┌──────────────────────────────────────────────┐
+│              Article Preview                 │
+│                                              │
+│     TITLE                                    │
+│     Description                              │
+│                                              │
+│     Author · Date · 8 min read               │
+│                                              │
+│          [ READ ARTICLE ]                    │
+│                                              │
+└──────────────────────────────────────────────┘
+```
+
+### Mobile
+
+Card প্রায় full-width হবে কিন্তু:
+
+* header visible
+* close/back visible
+* article CTA visible
+* browser viewport block করবে না
+
+বর্তমান implementation-এ mobile thumb-zone close control রয়েছে; এই ergonomic ধারণাটি বজায় রাখবে।
+
+---
+
+# 9. ARTICLE READING EXPERIENCE
+
+Article open করার পরে user যেন আবার 3D maze-এর মধ্যে আটকে না যায়।
+
+Article reading mode হবে:
+
+**calm + readable + futuristic**
+
+3D identity থাকবে subtleভাবে।
+
+অর্থাৎ:
+
+```text
+3D Library
+     ↓
+Article
+     ↓
+Clean Reading Environment
+```
+
+Article text:
+
+* high contrast
+* readable font
+* comfortable line length
+* proper spacing
+* headings
+* images
+* code blocks
+* quotes
+* lists
+* metadata
+
+সমর্থন করার মতো structure তৈরি করো।
+
+---
+
+# 10. CARD INFORMATION HIERARCHY
+
+Card-এ সব তথ্য একসঙ্গে দেখাবে না।
+
+Priority:
+
+### Level 1
+
+**Title**
+
+### Level 2
+
+**Short description**
+
+### Level 3
+
+Category + Author + Reading time
+
+### Level 4
+
+Tags / secondary metadata
+
+### Level 5
+
+Decorative 3D object
+
+Decorative 3D model যেন article information-এর readability নষ্ট না করে।
+
+বর্তমান cards-এ embedded procedural 3D models রয়েছে; এগুলো decorative/semantic visual হিসেবে ব্যবহার করা যেতে পারে।
+
+---
+
+# 11. FUTURISTIC — কিন্তু GIMMICK নয়
+
+Design হবে:
+
+> **50,000-year futuristic aesthetic**
+
+এখানে “50,000-year compatible” বলতে literal prediction নয়।
+
+এর অর্থ:
+
+* timeless
+* post-digital
+* spatial
+* intelligent
+* minimal
+* advanced
+* unfamiliar but intuitive
+* visually sophisticated
+* not dependent on today's common UI trends
+
+এড়িয়ে চলবে:
+
+* অতিরিক্ত neon
+* unnecessary cyberpunk
+* excessive glow
+* random floating objects
+* too many buttons
+* visual noise
+* game-like HUD
+* confusing animations
+
+Future aesthetic = **advanced simplicity**।
+
+---
+
+# 12. 3D MUST REMAIN
+
+এই project-কে 2D blog website বানানো যাবে না।
+
+Article discovery experience-এর মূল identity হবে:
+
+```text
+ARTICLE
+   ↓
+3D OBJECT
+   ↓
+3D CARD
+   ↓
+SPATIAL LIBRARY
+```
+
+অর্থাৎ 3D শুধু background animation হবে না।
+
+**Article cards নিজেরাই 3D interface-এর অংশ হবে।**
+
+---
+
+# 13. MOTION DESIGN
+
+বর্তমান floating/drift behaviour রাখা যাবে, কিন্তু subtle করতে হবে।
+
+বর্তমানে cards sinusoidal floating motion ব্যবহার করছে।
+
+এটি refine করো:
+
+### Idle
+
+Very subtle movement.
+
+### Hover
+
+Slight elevation + glow.
+
+### Focus
+
+Card smoothly approaches user.
+
+### Open
+
+Card transforms into reading/preview state.
+
+### Close
+
+Card smoothly returns to its previous spatial position.
+
+**কোনো abrupt movement নয়।**
+
+---
+
+# 14. IMPORTANT — RETURN TO STABLE STATE
+
+এটি mandatory।
+
+User যতই:
+
+* pan করুক
+* zoom করুক
+* card খুলুক
+* card close করুক
+* article switch করুক
+* category বদলাক
+
+শেষ পর্যন্ত system-কে একটি **stable, predictable state**-এ ফিরিয়ে আনা সম্ভব হতে হবে।
+
+বিশেষ করে:
+
+```text
+Explore
+ ↓
+Open Card
+ ↓
+Close
+ ↓
+Return to stable 3D library state
+```
+
+বর্তমান specification-এ return-to-floating-grid behaviour আছে; এই concept অবশ্যই থাকবে।
+
+---
+
+# 15. SEARCH
+
+Unlimited article library-এর জন্য search অত্যন্ত গুরুত্বপূর্ণ।
+
+একটি futuristic কিন্তু simple search interface তৈরি করো।
+
+User যেন:
+
+```text
+Search articles...
+```
+
+দিয়ে article খুঁজতে পারে।
+
+Search result হলে 3D space automatically relevant cards-এর দিকে focus করতে পারবে।
+
+কিন্তু user-কে manually endless space ঘুরিয়ে article খুঁজতে বাধ্য করা যাবে না।
+
+---
+
+# 16. CATEGORY SYSTEM
+
+Article categories support করবে।
+
+Example:
+
+```text
+All
+Technology
+AI
+Science
+History
+Business
+Design
+Programming
+Research
+```
+
+এগুলো hardcoded demo data হতে পারে।
+
+Future API integration-এর জন্য category data-driven রাখবে।
+
+---
+
+# 17. ARTICLE DATA MODEL
+
+বর্তমানে API connection করবে না।
+
+কিন্তু একটি clean mock data model তৈরি করো:
+
+```javascript
+{
+  id,
+  slug,
+  title,
+  excerpt,
+  category,
+  author,
+  publishedAt,
+  readingTime,
+  coverImage,
+  tags,
+  status,
+  featured,
+  content
+}
+```
+
+3D card renderer শুধুমাত্র এই data model consume করবে।
+
+---
+
+# 18. DO NOT DESTROY CURRENT ARCHITECTURE
+
+Existing:
+
+* Three.js
+* scene
+* camera
+* OrbitControls
+* procedural textures
+* lighting
+* card meshes
+* card groups
+* raycasting
+* responsive calculations
+
+যেগুলো reusable, সেগুলো preserve করবে।
+
+বর্তমান DOM layer-ও fullscreen WebGL viewport + UI overlay architecture অনুসরণ করছে।
+
+শুধু UX ও data architecture প্রয়োজন অনুযায়ী refactor করবে।
+
+---
+
+# 19. PERFORMANCE
+
+Unlimited article data ≠ unlimited WebGL objects.
+
+Must use:
+
+* virtualization
+* object reuse
+* texture reuse
+* lazy rendering
+* controlled animation
+* frustum awareness
+* disposal
+* efficient event handling
+
+বর্তমান system shared textures ব্যবহার করে memory overhead কমানোর চেষ্টা করছে; সেই optimization philosophy বজায় রাখবে।
+
+---
+
+# 20. MOBILE-FIRST
+
+Mobile-এ experience desktop-এর ছোট version হবে না।
+
+Mobile-এর জন্য:
+
+* thumb-friendly controls
+* swipe navigation
+* readable cards
+* accessible close/back
+* no accidental pan
+* no accidental article opening
+* smooth transitions
+* safe viewport margins
+
+প্রাধান্য পাবে।
+
+---
+
+# 21. ACCESSIBILITY
+
+3D থাকা সত্ত্বেও basic accessibility বাদ দেওয়া যাবে না।
+
+Provide:
+
+* keyboard navigation
+* visible focus
+* readable contrast
+* reduced-motion consideration
+* semantic buttons
+* accessible labels
+* screen-reader meaningful article information
+
+3D interaction কখনো একমাত্র navigation method হবে না।
+
+---
+
+# 22. VISUAL DESIGN TARGET
+
+Final result দেখে যেন মনে হয়:
+
+> “এটি একটি 3D publishing universe।”
+
+না:
+
+> “এটি একটি 3D demo যেখানে কিছু website card floating করছে।”
+
+এই distinction-টাই সবচেয়ে গুরুত্বপূর্ণ।
+
+---
+
+# 23. CURRENT → TARGET
+
+### CURRENT
+
+```text
+Infinite 3D Card Demo
+        ↓
+25 procedural cards
+        ↓
+Infinite pan
+        ↓
+Card inspection
+```
+
+### TARGET
+
+```text
+3D Article Universe
+        ↓
+Unlimited Article Dataset
+        ↓
+Virtualized 3D Cards
+        ↓
+Search / Filter / Category
+        ↓
+Spatial Exploration
+        ↓
+Article Preview
+        ↓
+Full Article Reading
+```
+
+---
+
+# 24. API এখন CONNECT করবে না
+
+এই phase-এ:
+
+❌ API integration নয়
+❌ backend modification নয়
+❌ database modification নয়
+❌ authentication নয়
+❌ production publishing backend নয়
+
+শুধু:
+
+✅ frontend architecture
+✅ mock article data
+✅ article card renderer
+✅ 3D UX
+✅ navigation
+✅ article preview
+✅ reading experience
+✅ responsive behaviour
+✅ performance architecture
+
+Future API integration-এর জন্য clean interface তৈরি করবে।
+
+---
+
+# 25. IMPLEMENTATION RULE
+
+কাজ শুরু করার আগে বর্তমান codebase সম্পূর্ণ inspect করো।
+
+তারপর:
+
+1. Existing architecture বুঝো
+2. Existing 3D behaviour preserve করো
+3. Current UX problems identify করো
+4. Article data model তৈরি করো
+5. Card renderer refactor করো
+6. Unlimited-data-ready architecture তৈরি করো
+7. Virtualized card rendering implement করো
+8. Search/filter navigation যোগ করো
+9. Article preview mode তৈরি করো
+10. Reading mode তৈরি করো
+11. Stable return state নিশ্চিত করো
+12. Mobile UX test করো
+13. Desktop UX test করো
+14. Performance test করো
+15. কোনো existing working feature অকারণে remove করো না
+
+---
+
+# 26. FINAL QUALITY BAR
+
+আমি শুধু সুন্দর animation চাই না।
+
+আমি চাই:
+
+**Beautiful + Futuristic + 3D + Article-focused + Usable + Scalable + API-ready**
+
+এই পাঁচটি একসঙ্গে থাকতে হবে।
+
+সবচেয়ে গুরুত্বপূর্ণ:
+
+> **3D design user-এর জন্য কাজ করবে; user-কে 3D design-এর জন্য কাজ করতে হবে না।**
+
+বর্তমান visual identity থাকবে।
+
+কিন্তু interaction হবে এতটাই intuitive যে প্রথমবার ব্যবহারকারী কোনো documentation ছাড়াই বুঝতে পারবে:
+
+**কোথায় article আছে → কীভাবে খুঁজবে → কীভাবে খুলবে → কীভাবে পড়বে → কীভাবে ফিরে আসবে।**
+
+শেষে implementation-এর পরে শুধু “done” বলবে না।
+
+বাস্তবে test করে report করবে:
+
+* Desktop
+* Mobile
+* Card interaction
+* Search
+* Filtering
+* Article opening
+* Article closing
+* Return-to-stable-state
+* Large mock article dataset
+* Performance
+* Memory/CPU behaviour
+* Console errors
+* Existing feature regression
+
+এবং কোনো সমস্যা থাকলে সেটি স্পষ্টভাবে দেখাবে।

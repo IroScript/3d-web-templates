@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>EXITO · Infinite Floating 3D Cards</title>
+  <title>EXITO · 3D Article & Publishing Universe</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css">
   <script type="importmap">
   {
@@ -22,7 +22,7 @@
   <div class="ambient-glow glow-bottom-right"></div>
   <div class="ambient-glow glow-center"></div>
 
-  <!-- Studio Header Navigation Bar -->
+  <!-- Studio Header Navigation Bar (Layer B: Search & Navigation) -->
   <header id="studio-header">
     <div class="header-left">
       <div class="brand-badge">
@@ -31,84 +31,134 @@
       </div>
       <div class="studio-tag">
         <span class="tag-dot"></span>
-        <span>INFINITE 3D CARDS</span>
+        <span>3D PUBLISHING UNIVERSE</span>
       </div>
     </div>
 
     <div class="header-center">
-      <div class="mode-badge-pill" id="grid-status-pill">
-        <span>🌐 Unlimited Infinite Grid</span>
+      <div class="header-search-wrap">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          id="input-article-search"
+          placeholder="Search articles, neural, quantum, author..."
+          aria-label="Search articles"
+          autocomplete="off"
+        />
+        <button id="btn-clear-search" class="btn-clear-search hidden" title="Clear search" aria-label="Clear search">&times;</button>
       </div>
     </div>
 
     <div class="header-right">
-      <button class="control-pill-btn" id="btn-toggle-drift" title="Toggle Floating Wave Animation">
+      <button class="control-pill-btn" id="btn-toggle-drift" title="Toggle Floating Wave Motion">
         <span id="drift-label">✨ Drift: ON</span>
       </button>
-      <button class="control-pill-btn" id="btn-reset-view" title="Reset Camera to Center">
+      <button class="control-pill-btn" id="btn-reset-view" title="Reset Camera to Library Center">
         <span>🎯 Reset</span>
       </button>
     </div>
   </header>
 
-  <!-- Interactive 3D WebGL Canvas Layer -->
+  <!-- Interactive 3D WebGL Canvas Layer (Layer A: Spatial Browsing) -->
   <div id="viewport-container">
     <canvas id="webgl-canvas"></canvas>
 
     <!-- Floating Interactive Hint -->
     <div id="instruction-pill" class="instruction-pill">
       <span class="pill-icon">👆</span>
-      <span class="pill-text">Pan infinitely in any direction • Click or hold any card to bring flat to screen</span>
+      <span class="pill-text" id="instruction-text">Pan 3D library • Tap any card to inspect or read</span>
     </div>
 
-    <!-- Stationary Flat Card Close Action (Appears when a card is brought flat to front) -->
-    <button id="btn-close-flat" class="btn-close-flat hidden" title="Return card to floating 3D grid">
-      <span class="close-icon">&times;</span>
-      <span class="close-text">Return to Floating Grid</span>
-    </button>
+    <!-- Stationary Flat Card Action Group (Thumb-Zone at Bottom) -->
+    <div id="flat-card-actions" class="flat-card-actions hidden">
+      <button id="btn-read-article" class="btn-action-primary" title="Open and read full article in serene reading mode">
+        <span class="btn-icon">📖</span>
+        <span class="btn-label">READ ARTICLE</span>
+      </button>
+      <button id="btn-close-flat" class="btn-action-secondary" title="Return card to floating 3D grid">
+        <span class="btn-icon">&times;</span>
+        <span class="btn-label">Back to Grid</span>
+      </button>
+    </div>
   </div>
 
-  <!-- Bottom Navigation Quick Switcher Bar -->
+  <!-- Bottom Navigation Category Tray (Layer B: Filter by Domain) -->
   <footer id="bottom-card-bar">
     <div class="card-pills-scroll" id="card-pills-container">
-      <button class="card-pill active" data-type="0">
-        <span class="pill-dot" style="background: #00f3ff;"></span>
-        <span class="pill-name">AI Technology</span>
-      </button>
-      <button class="card-pill" data-type="1">
-        <span class="pill-dot" style="background: #a855f7;"></span>
-        <span class="pill-name">Quantum FX</span>
-      </button>
-      <button class="card-pill" data-type="2">
-        <span class="pill-dot" style="background: #ec4899;"></span>
-        <span class="pill-name">About Us (Pedestal)</span>
-      </button>
-      <button class="card-pill" data-type="3">
-        <span class="pill-dot" style="background: #3b82f6;"></span>
-        <span class="pill-name">Revolutionizing</span>
-      </button>
-      <button class="card-pill" data-type="4">
+      <button class="card-pill active" data-category="All">
         <span class="pill-dot" style="background: #6366f1;"></span>
-        <span class="pill-name">Trading (Loop)</span>
+        <span class="pill-name">All Articles</span>
       </button>
-      <button class="card-pill" data-type="5">
+      <button class="card-pill" data-category="AI & Neural">
+        <span class="pill-dot" style="background: #00f3ff;"></span>
+        <span class="pill-name">AI & Neural</span>
+      </button>
+      <button class="card-pill" data-category="Quantum Computing">
+        <span class="pill-dot" style="background: #a855f7;"></span>
+        <span class="pill-name">Quantum</span>
+      </button>
+      <button class="card-pill" data-category="Space Tech">
+        <span class="pill-dot" style="background: #ec4899;"></span>
+        <span class="pill-name">Space Tech</span>
+      </button>
+      <button class="card-pill" data-category="Fintech & Web3">
+        <span class="pill-dot" style="background: #3b82f6;"></span>
+        <span class="pill-name">Fintech</span>
+      </button>
+      <button class="card-pill" data-category="Design & Spatial">
+        <span class="pill-dot" style="background: #6366f1;"></span>
+        <span class="pill-name">Spatial UI</span>
+      </button>
+      <button class="card-pill" data-category="Cybernetics">
         <span class="pill-dot" style="background: #f472b6;"></span>
-        <span class="pill-name">Experience</span>
-      </button>
-      <button class="card-pill" data-type="6">
-        <span class="pill-dot" style="background: #10b981;"></span>
-        <span class="pill-name">Licensed FX</span>
-      </button>
-      <button class="card-pill" data-type="7">
-        <span class="pill-dot" style="background: #06b6d4;"></span>
-        <span class="pill-name">Industries</span>
-      </button>
-      <button class="card-pill" data-type="8">
-        <span class="pill-dot" style="background: #eab308;"></span>
-        <span class="pill-name">Edge AI</span>
+        <span class="pill-name">Cybernetics</span>
       </button>
     </div>
   </footer>
+
+  <!-- Serene & Futuristic Full Article Reader Modal (Layer C: Deep Reading Mode) -->
+  <section id="article-reader-modal" class="article-reader-modal hidden" aria-modal="true" role="dialog" aria-hidden="true">
+    <div class="reader-progress-track">
+      <div id="reader-progress-bar" class="reader-progress-bar"></div>
+    </div>
+
+    <nav class="reader-sticky-nav">
+      <button id="btn-reader-back" class="reader-nav-btn back-btn" aria-label="Back to 3D library">
+        <span>← Back to 3D Library</span>
+      </button>
+      <div class="reader-nav-meta">
+        <span id="reader-nav-category" class="reader-meta-chip">CATEGORY</span>
+        <span id="reader-nav-readtime" class="reader-meta-time">6 min read</span>
+      </div>
+      <div class="reader-nav-actions">
+        <button id="btn-reader-bookmark" class="reader-nav-btn" title="Save article to reading list">
+          <span id="bookmark-icon">🔖</span>
+          <span id="bookmark-label">Save</span>
+        </button>
+        <button id="btn-reader-close" class="reader-nav-btn close-btn" title="Close reading mode" aria-label="Close">
+          <span>&times;</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="reader-scroll-viewport" id="reader-scroll-viewport">
+      <article class="reader-prose-container" id="reader-article-content">
+        <!-- Injected dynamically from active article entity -->
+      </article>
+
+      <footer class="reader-article-footer">
+        <div class="footer-divider"></div>
+        <div class="footer-author-box" id="reader-footer-author">
+          <!-- Author card injected dynamically -->
+        </div>
+        <div class="footer-actions">
+          <button id="btn-reader-footer-back" class="btn-action-primary">
+            <span>← Return to 3D Universe</span>
+          </button>
+        </div>
+      </footer>
+    </div>
+  </section>
 
   <script type="module" src="./app.js"></script>
 </body>

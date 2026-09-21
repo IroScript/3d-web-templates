@@ -1,28 +1,61 @@
 /**
- * CARD DESIGN FLOATING - INFINITE 3D GRID & FLAT-TO-SCREEN ENGINE
- * Unlimited procedural floating cards + Smooth Click/Hold Flat-to-Screen transitions
+ * EXITO · 3D ARTICLE & PUBLISHING UNIVERSE ENGINE
+ * Spatial 3D Library • Decoupled Data Layer • Infinite Toroidal Matrix • Serene Reader Mode
  */
 
 import * as THREE from 'three';
 import { OrbitControls } from './OrbitControls.js';
+import { ARTICLES, CATEGORIES, queryArticles } from './articles-data.js';
 
-// ─── DOM References ──────────────────────────────────────────────
+// ─── DOM Elements ────────────────────────────────────────────────
 const canvas = document.getElementById('webgl-canvas');
 const btnToggleDrift = document.getElementById('btn-toggle-drift');
 const driftLabel = document.getElementById('drift-label');
 const btnResetView = document.getElementById('btn-reset-view');
-const cardPills = document.querySelectorAll('.card-pill');
-const btnCloseFlat = document.getElementById('btn-close-flat');
 const instructionPill = document.getElementById('instruction-pill');
+const instructionText = document.getElementById('instruction-text');
 
-// ─── Three.js Scene Setup ────────────────────────────────────────
+// Search & Category Filters (Layer B)
+const inputSearch = document.getElementById('input-article-search');
+const btnClearSearch = document.getElementById('btn-clear-search');
+const categoryPills = document.querySelectorAll('.card-pill');
+
+// Flat Card Actions (Thumb-Zone at Bottom)
+const flatCardActions = document.getElementById('flat-card-actions');
+const btnReadArticle = document.getElementById('btn-read-article');
+const btnCloseFlat = document.getElementById('btn-close-flat');
+
+// Full Article Reader Modal (Layer C)
+const readerModal = document.getElementById('article-reader-modal');
+const readerProgressBar = document.getElementById('reader-progress-bar');
+const readerScrollViewport = document.getElementById('reader-scroll-viewport');
+const readerArticleContent = document.getElementById('reader-article-content');
+const readerFooterAuthor = document.getElementById('reader-footer-author');
+const readerNavCategory = document.getElementById('reader-nav-category');
+const readerNavReadTime = document.getElementById('reader-nav-readtime');
+const btnReaderBack = document.getElementById('btn-reader-back');
+const btnReaderClose = document.getElementById('btn-reader-close');
+const btnReaderFooterBack = document.getElementById('btn-reader-footer-back');
+const btnReaderBookmark = document.getElementById('btn-reader-bookmark');
+const bookmarkLabel = document.getElementById('bookmark-label');
+
+// ─── App State ───────────────────────────────────────────────────
+let currentSearch = '';
+let currentCategory = 'All';
+let activeArticles = [...ARTICLES];
+let savedArticleIds = new Set();
+let isDrifting = true;
+let activeFlatCard = null;
+let flatOpenedTime = 0;
+let searchDebounceTimeout = null;
+
+// ─── Three.js Scene Setup (Layer A: Spatial Browsing) ────────────
 const scene = new THREE.Scene();
 
 const isMobile = window.innerWidth < 768;
 const defaultCamZ = isMobile ? 42.0 : 34.0;
 
 const camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 400);
-
 const ISO_CAM_POS = new THREE.Vector3(2.0, 1.5, defaultCamZ);
 const ISO_LOOK_AT = new THREE.Vector3(0, 0, 0);
 camera.position.copy(ISO_CAM_POS);
@@ -40,13 +73,13 @@ renderer.toneMappingExposure = 1.3;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-// ─── Orbit Controls (Configured for Infinite Panning) ────────────
+// ─── Orbit Controls ──────────────────────────────────────────────
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 controls.enablePan = true;
 controls.screenSpacePanning = true;
-controls.minDistance = 6;
+controls.minDistance = 8;
 controls.maxDistance = 90;
 controls.target.copy(ISO_LOOK_AT);
 
@@ -55,8 +88,8 @@ controls.touches = {
   TWO: THREE.TOUCH.DOLLY_ROTATE
 };
 
-// ─── Studio Lighting ─────────────────────────────────────────────
-const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+// ─── Lighting Rig ────────────────────────────────────────────────
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.45);
 scene.add(ambientLight);
 
 const keyLight = new THREE.DirectionalLight(0xf8faff, 2.8);
@@ -75,8 +108,14 @@ const pinkFill = new THREE.DirectionalLight(0xf472b6, 1.2);
 pinkFill.position.set(0, -20, 15);
 scene.add(pinkFill);
 
-// ─── High-Fidelity Card Texture Generator ────────────────────────
-function createCardCanvasTexture(config) {
+// ─── Dynamic Article Canvas Texture Generator ────────────────────
+const textureCache = new Map();
+
+function createArticleCanvasTexture(article) {
+  if (textureCache.has(article.id)) {
+    return textureCache.get(article.id);
+  }
+
   const w = 1500;
   const h = 1000;
   const c = document.createElement('canvas');
@@ -84,7 +123,7 @@ function createCardCanvasTexture(config) {
   c.height = h;
   const ctx = c.getContext('2d');
 
-  // Background gradient
+  // Background subtle gradient
   const bg = ctx.createLinearGradient(0, 0, w, h);
   bg.addColorStop(0, '#ffffff');
   bg.addColorStop(0.65, '#f8fafc');
@@ -92,17 +131,18 @@ function createCardCanvasTexture(config) {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 
-  // Glow on right side
-  const glow = ctx.createRadialGradient(w * 0.72, h * 0.5, 40, w * 0.72, h * 0.5, 420);
-  glow.addColorStop(0, config.glowColor || 'rgba(224, 231, 255, 0.75)');
+  // Colored radial ambient glow
+  const glow = ctx.createRadialGradient(w * 0.72, h * 0.5, 40, w * 0.72, h * 0.5, 440);
+  glow.addColorStop(0, article.glowColor || 'rgba(99, 102, 241, 0.75)');
   glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, w, h);
 
-  // Top Nav
+  // Top Nav Bar
   ctx.save();
   ctx.translate(65, 58);
 
+  // Logo Chevron & Brand
   ctx.fillStyle = '#0f172a';
   ctx.beginPath();
   ctx.roundRect(0, 0, 36, 36, 8);
@@ -115,119 +155,150 @@ function createCardCanvasTexture(config) {
   ctx.fillText('<', 18, 19);
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = '800 23px "Space Grotesk", sans-serif';
+  ctx.font = '800 22px "Space Grotesk", sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('EXITO', 48, 19);
+  ctx.fillText('EXITO PUBLISHING', 48, 19);
 
-  const links = ['Home', 'Service', 'About', 'Industries Served', 'Contact'];
-  let lx = 180;
-  ctx.font = '600 16px "Plus Jakarta Sans", sans-serif';
-
-  links.forEach((txt, idx) => {
-    ctx.fillStyle = (idx === 0) ? '#0f172a' : '#64748b';
-    ctx.fillText(txt, lx, 19);
-    lx += ctx.measureText(txt).width + 30;
-  });
-
-  ctx.fillStyle = 'rgba(224, 231, 255, 0.65)';
+  // Reading time badge
+  ctx.fillStyle = 'rgba(241, 245, 249, 0.9)';
   ctx.beginPath();
-  ctx.roundRect(w - 250, -4, 115, 44, 22);
+  ctx.roundRect(w - 380, -4, 130, 42, 21);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(199, 210, 254, 0.9)';
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.fillStyle = '#475569';
+  ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`⏱ ${article.readingTime.toUpperCase()}`, w - 315, 19);
+
+  // Status Badge
+  ctx.fillStyle = 'rgba(99, 102, 241, 0.12)';
+  ctx.beginPath();
+  ctx.roundRect(w - 230, -4, 115, 42, 21);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(99, 102, 241, 0.3)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  ctx.fillStyle = '#0f172a';
-  ctx.font = '700 15px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = '#6366f1';
+  ctx.font = '800 13px "Plus Jakarta Sans", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('Sign in', w - 192, 19);
+  ctx.fillText(article.status.toUpperCase(), w - 172, 19);
 
   ctx.restore();
 
-  // Left Content
+  // Left Content Body (Hierarchy L1 to L4)
   ctx.save();
-  ctx.translate(65, 270);
+  ctx.translate(65, 220);
 
-  if (config.badge) {
-    ctx.fillStyle = 'rgba(99, 102, 241, 0.1)';
-    ctx.beginPath();
-    ctx.roundRect(0, 0, ctx.measureText(config.badge).width + 36, 32, 16);
-    ctx.fill();
+  // Level 3: Category Pill
+  ctx.fillStyle = 'rgba(99, 102, 241, 0.1)';
+  ctx.beginPath();
+  const catText = article.category.toUpperCase();
+  ctx.font = '800 14px "Plus Jakarta Sans", sans-serif';
+  const catWidth = ctx.measureText(catText).width + 36;
+  ctx.roundRect(0, 0, catWidth, 34, 17);
+  ctx.fill();
 
-    ctx.fillStyle = '#6366f1';
-    ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(config.badge.toUpperCase(), 18, 20);
-    ctx.translate(0, 52);
-  }
+  ctx.fillStyle = '#6366f1';
+  ctx.textAlign = 'left';
+  ctx.fillText(catText, 18, 22);
 
+  ctx.translate(0, 58);
+
+  // Level 1: Article Title (Wrap cleanly)
   ctx.fillStyle = '#0f172a';
-  ctx.font = '800 62px "Plus Jakarta Sans", sans-serif';
+  ctx.font = '800 52px "Space Grotesk", sans-serif';
   ctx.textAlign = 'left';
 
-  const words = config.title.split(' ');
-  let line = '';
-  let y = 0;
-  const maxWidth = 580;
+  const titleWords = article.title.split(' ');
+  let titleLine = '';
+  let yPos = 0;
+  const maxTitleWidth = 640;
 
-  for (let n = 0; n < words.length; n++) {
-    const testLine = line + words[n] + ' ';
+  for (let n = 0; n < titleWords.length; n++) {
+    const testLine = titleLine + titleWords[n] + ' ';
     const metrics = ctx.measureText(testLine);
-    if (metrics.width > maxWidth && n > 0) {
-      ctx.fillText(line, 0, y);
-      line = words[n] + ' ';
-      y += 72;
+    if (metrics.width > maxTitleWidth && n > 0) {
+      ctx.fillText(titleLine, 0, yPos);
+      titleLine = titleWords[n] + ' ';
+      yPos += 64;
     } else {
-      line = testLine;
+      titleLine = testLine;
     }
   }
-  ctx.fillText(line, 0, y);
-  y += 88;
+  ctx.fillText(titleLine, 0, yPos);
+  yPos += 76;
 
-  ctx.fillStyle = '#64748b';
-  ctx.font = '400 21px "Plus Jakarta Sans", sans-serif';
-  const descWords = config.desc.split(' ');
-  let dLine = '';
-  const dMaxWidth = 540;
+  // Level 2: Short Excerpt
+  ctx.fillStyle = '#475569';
+  ctx.font = '400 22px "Plus Jakarta Sans", sans-serif';
+  const descWords = article.excerpt.split(' ');
+  let descLine = '';
+  const maxDescWidth = 600;
 
   for (let n = 0; n < descWords.length; n++) {
-    const testLine = dLine + descWords[n] + ' ';
+    const testLine = descLine + descWords[n] + ' ';
     const metrics = ctx.measureText(testLine);
-    if (metrics.width > dMaxWidth && n > 0) {
-      ctx.fillText(dLine, 0, y);
-      dLine = descWords[n] + ' ';
-      y += 34;
+    if (metrics.width > maxDescWidth && n > 0) {
+      ctx.fillText(descLine, 0, yPos);
+      descLine = descWords[n] + ' ';
+      yPos += 36;
     } else {
-      dLine = testLine;
+      descLine = testLine;
     }
   }
-  ctx.fillText(dLine, 0, y);
-  y += 65;
+  ctx.fillText(descLine, 0, yPos);
+  yPos += 60;
 
-  const btnLabel = config.btnText || 'Get started';
+  // Level 3: Author & Date Row
+  ctx.fillStyle = '#6366f1';
+  ctx.beginPath();
+  ctx.arc(16, yPos + 10, 16, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 13px "Plus Jakarta Sans", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(article.author.charAt(0), 16, yPos + 14);
+
+  ctx.fillStyle = '#0f172a';
+  ctx.font = '700 17px "Plus Jakarta Sans", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(article.author, 44, yPos + 8);
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '500 15px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(`•  ${article.publishedAt}`, 44 + ctx.measureText(article.author).width + 16, yPos + 8);
+
+  yPos += 54;
+
+  // CTA Button: [ Read Article -> ]
   ctx.fillStyle = '#0f172a';
   ctx.beginPath();
-  ctx.roundRect(0, y, 180, 54, 27);
+  ctx.roundRect(0, yPos, 210, 56, 28);
   ctx.fill();
 
   ctx.fillStyle = '#ffffff';
   ctx.font = '700 17px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText(btnLabel, 34, y + 34);
-  ctx.fillText('→', 145, y + 34);
+  ctx.fillText('Read Article  →', 34, yPos + 35);
 
+  // Level 4: Tags
   ctx.fillStyle = '#94a3b8';
-  ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
-  ctx.letterSpacing = '1.5px';
-  ctx.fillText('SCROLL DOWN ↓', 0, 590);
+  ctx.font = '600 14px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(article.tags.map(t => `#${t}`).join('   '), 240, yPos + 35);
 
   ctx.restore();
 
   const tex = new THREE.CanvasTexture(c);
   tex.anisotropy = 8;
+  textureCache.set(article.id, tex);
   return tex;
 }
 
-// ─── 3D Model Generators for Cards ───────────────────────────────
+// ─── Procedural 3D Micro-Models for Cards ────────────────────────
 function createMiniCoin(radius = 0.95, thickness = 0.18) {
   const geom = new THREE.CylinderGeometry(radius, radius, thickness, 48);
   const matFace = new THREE.MeshPhysicalMaterial({ color: 0xf3e8ff, metalness: 0.96, roughness: 0.16, clearcoat: 0.8 });
@@ -242,125 +313,145 @@ function createModelAiSphere() {
   const core = new THREE.Mesh(new THREE.SphereGeometry(1.15, 24, 24), new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.65 }));
   g.add(core);
 
-  const count = 1800;
+  const count = 1600;
   const radius = 1.85;
   const pGeo = new THREE.BufferGeometry();
   const pos = new Float32Array(count * 3);
   const col = new Float32Array(count * 3);
   const c1 = new THREE.Color(0x00f3ff);
-  const c2 = new THREE.Color(0xa855f7);
+  const c2 = new THREE.Color(0x8b5cf6);
 
   for (let i = 0; i < count; i++) {
-    const phi = Math.acos(1 - 2 * (i + 0.5) / count);
-    const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-    pos[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-    pos[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-    pos[i * 3 + 2] = radius * Math.cos(phi);
-    const c = c1.clone().lerp(c2, (pos[i * 3 + 1] + radius) / (radius * 2));
-    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    const theta = Math.acos(2 * Math.random() - 1);
+    const phi = 2 * Math.PI * Math.random();
+    const r = radius * (0.88 + Math.random() * 0.24);
+    pos[i * 3] = r * Math.sin(theta) * Math.cos(phi);
+    pos[i * 3 + 1] = r * Math.sin(theta) * Math.sin(phi);
+    pos[i * 3 + 2] = r * Math.cos(theta);
+
+    const mixed = c1.clone().lerp(c2, Math.random());
+    col[i * 3] = mixed.r;
+    col[i * 3 + 1] = mixed.g;
+    col[i * 3 + 2] = mixed.b;
   }
   pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   pGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const points = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.055, vertexColors: true, transparent: true, opacity: 0.9 }));
+
+  const pMat = new THREE.PointsMaterial({ size: 0.05, vertexColors: true, transparent: true, opacity: 0.9 });
+  const points = new THREE.Points(pGeo, pMat);
   g.add(points);
 
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.025, 12, 64), new THREE.MeshBasicMaterial({ color: 0x9333ea, transparent: true, opacity: 0.45 }));
-  ring.rotation.x = Math.PI / 3;
+  const ringGeo = new THREE.TorusGeometry(2.0, 0.04, 16, 64);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 2.5;
   g.add(ring);
 
   g.userData = { points, core, ring };
   return g;
 }
 
-function createModelThreeCoins() {
+function createModelQuantum() {
   const g = new THREE.Group();
-  const coinItems = [];
-  const c1 = createMiniCoin(0.95, 0.18); c1.position.set(-1.25, 0.35, 0.1); c1.rotation.set(0.6, -0.4, 0.2); g.add(c1); coinItems.push({ mesh: c1, speed: 1.1, phase: 0 });
-  const c2 = createMiniCoin(1.05, 0.2); c2.position.set(0.15, 0.55, 0.45); c2.rotation.set(0.3, 0.2, -0.15); g.add(c2); coinItems.push({ mesh: c2, speed: 1.3, phase: 1.6 });
-  const c3 = createMiniCoin(0.9, 0.16); c3.position.set(1.35, 0.45, -0.1); c3.rotation.set(0.8, 0.5, -0.3); g.add(c3); coinItems.push({ mesh: c3, speed: 1.0, phase: 3.1 });
-  g.userData = { coins: coinItems };
+  const coin = createMiniCoin(1.15, 0.22);
+  coin.rotation.x = 0.4;
+  g.add(coin);
+
+  const tori = [];
+  const angles = [0.2, 0.8, -0.6];
+  angles.forEach((ang, idx) => {
+    const tGeo = new THREE.TorusGeometry(1.6 + idx * 0.35, 0.035, 16, 64);
+    const tMat = new THREE.MeshBasicMaterial({ color: idx === 1 ? 0xa855f7 : 0x00f3ff, transparent: true, opacity: 0.85 });
+    const t = new THREE.Mesh(tGeo, tMat);
+    t.rotation.x = ang;
+    t.rotation.y = idx * 1.1;
+    g.add(t);
+    tori.push(t);
+  });
+
+  const satCoins = [];
+  for (let i = 0; i < 3; i++) {
+    const sc = createMiniCoin(0.4, 0.1);
+    sc.position.set(Math.cos(i * 2.1) * 2.1, Math.sin(i * 2.1) * 2.1, 0.2);
+    g.add(sc);
+    satCoins.push({ mesh: sc, speed: 0.8 + i * 0.4 });
+  }
+
+  g.userData = { coin, tori, coins: satCoins };
   return g;
 }
 
 function createModelPedestal() {
   const g = new THREE.Group();
-  const box = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.5, 1.8), new THREE.MeshPhysicalMaterial({ color: 0xdb2777, metalness: 0.15, roughness: 0.2, clearcoat: 0.5 }));
-  box.position.set(0, -0.4, 0); box.rotation.y = Math.PI / 4.5; g.add(box);
+  const coin = createMiniCoin(1.1, 0.2);
+  coin.position.y = 0.65;
+  coin.rotation.x = 0.25;
+  g.add(coin);
 
-  const coin = createMiniCoin(0.88, 0.16); coin.position.set(0, 0.82, 0); coin.rotation.set(0.35, -0.2, 0.1); g.add(coin);
+  const p1 = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.4, 0.25, 6), new THREE.MeshPhysicalMaterial({ color: 0xec4899, roughness: 0.2, metalness: 0.8 }));
+  p1.position.y = -0.6;
+  g.add(p1);
 
-  const colors = [0x7c3aed, 0x2563eb, 0xf59e0b];
-  const tori = [];
-  colors.forEach((col, idx) => {
-    const tMesh = new THREE.Mesh(new THREE.TorusGeometry(1.8 + idx * 0.22, 0.055, 12, 60), new THREE.MeshPhysicalMaterial({ color: col, metalness: 0.85, roughness: 0.2, clearcoat: 0.7 }));
-    tMesh.position.set(0, -0.65 + idx * 0.28, 0);
-    tMesh.rotation.set(Math.PI / 2.8 + idx * 0.15, idx * 0.4, 0);
-    g.add(tMesh);
-    tori.push(tMesh);
-  });
-  g.userData = { coin, box, tori };
-  return g;
-}
+  const p2 = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.7, 0.2, 6), new THREE.MeshPhysicalMaterial({ color: 0x8b5cf6, roughness: 0.3, metalness: 0.7 }));
+  p2.position.y = -0.85;
+  g.add(p2);
 
-function createModelRibbon() {
-  const g = new THREE.Group();
-  const curve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-3.2, -1.0, -0.8), new THREE.Vector3(-1.5, 0.3, 0.7), new THREE.Vector3(0.0, 1.0, 0.25),
-    new THREE.Vector3(1.7, 0.35, -0.5), new THREE.Vector3(3.2, -0.7, 0.7)
-  ]);
-  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 80, 0.28, 16, false), new THREE.MeshPhysicalMaterial({ color: 0xfce7f3, metalness: 0.3, roughness: 0.25, clearcoat: 0.8 }));
-  g.add(tube);
-  const coin = createMiniCoin(0.95, 0.18); coin.position.set(-0.15, 1.25, 0.35); coin.rotation.set(0.4, 0.3, -0.2); g.add(coin);
-  g.userData = { coin, tube };
-  return g;
-}
-
-function createModelOrbitTrack() {
-  const g = new THREE.Group();
-  const track = new THREE.Mesh(new THREE.TorusGeometry(1.85, 0.1, 16, 80), new THREE.MeshPhysicalMaterial({ color: 0x6366f1, metalness: 0.9, roughness: 0.2, clearcoat: 0.7 }));
-  track.rotation.x = Math.PI / 2.6; track.rotation.y = Math.PI / 8; g.add(track);
-  const coin = createMiniCoin(1.05, 0.2); coin.position.set(0, 0.25, 0); coin.rotation.set(0.3, 0.4, -0.1); g.add(coin);
-  g.userData = { coin, track };
-  return g;
-}
-
-function createModelFloatingDiscs() {
-  const g = new THREE.Group();
-  const discMat = new THREE.MeshPhysicalMaterial({ color: 0xfce7f3, transparent: true, opacity: 0.85, roughness: 0.2, transmission: 0.6 });
-  [-1.0, 0.8].forEach((x, idx) => {
-    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.12, 32), discMat);
-    disc.position.set(x, -0.2 + idx * 0.5, idx * 0.3); disc.rotation.set(0.4, 0.3, -0.2); g.add(disc);
-  });
-  const coin = createMiniCoin(0.9, 0.16); coin.position.set(0, 0.6, 0.4); coin.rotation.set(0.5, 0.2, -0.1); g.add(coin);
   g.userData = { coin };
   return g;
 }
 
-function createModelSpatialWave() {
+function createModelLoop() {
   const g = new THREE.Group();
-  const wave = new THREE.Mesh(new THREE.TorusKnotGeometry(1.2, 0.3, 64, 16), new THREE.MeshPhysicalMaterial({ color: 0xdbeafe, roughness: 0.2, metalness: 0.3, clearcoat: 0.8 }));
-  g.add(wave);
-  g.userData = { wave };
+  const coin = createMiniCoin(1.1, 0.2);
+  coin.position.set(-0.2, 0.1, 0.2);
+  g.add(coin);
+
+  const loopGeo = new THREE.TorusGeometry(1.8, 0.08, 24, 72);
+  const loopMat = new THREE.MeshPhysicalMaterial({ color: 0x3b82f6, metalness: 0.9, roughness: 0.1, emissive: 0x1d4ed8, emissiveIntensity: 0.3 });
+  const loop = new THREE.Mesh(loopGeo, loopMat);
+  loop.rotation.x = 1.1;
+  loop.rotation.y = 0.4;
+  g.add(loop);
+
+  g.userData = { coin, loop };
   return g;
 }
 
-// ─── 9 Core Design Archetypes (to populate the infinite field) ────
-const CORE_DESIGNS = [
-  { id: 'ai', title: 'AI Technology', badge: 'Neural Execution', desc: 'Artificial intelligence (AI) and FX trading with quantum computers represent cutting-edge technologies.', glowColor: 'rgba(224, 231, 255, 0.85)', modelFn: createModelAiSphere },
-  { id: 'quantum', title: 'Quantum Computing in FX Trading', badge: 'Algorithmic Speed', desc: 'Combining AI and quantum computing in FX trading enhances predictions and speeds decision-making.', glowColor: 'rgba(243, 232, 255, 0.85)', modelFn: createModelThreeCoins },
-  { id: 'about', title: 'About Us', badge: 'London Core', desc: 'Exito Technologies is a cutting-edge technology company based in the heart of London.', glowColor: 'rgba(252, 231, 243, 0.85)', modelFn: createModelPedestal },
-  { id: 'revolution', title: 'Revolutionizing Financial Trading', badge: 'IP Valuation Boost', desc: 'Innovative IP Development Boosts Company Valuation with automated algorithmic execution.', glowColor: 'rgba(252, 231, 243, 0.8)', modelFn: createModelRibbon },
-  { id: 'trading_top', title: 'Trading', badge: 'MetaQuotes Integration', desc: 'Licensed with MetaQuotes refers to trading in the exchange market using MT4 and MT5 platforms.', glowColor: 'rgba(238, 242, 255, 0.8)', modelFn: createModelRibbon },
-  { id: 'experience', title: 'with experience', badge: 'Client Satisfaction', desc: 'Seamless multi-asset execution crafted for institutional hedge funds and high-frequency FX trading firms.', btnText: 'Learn more', glowColor: 'rgba(252, 231, 243, 0.8)', modelFn: createModelFloatingDiscs },
-  { id: 'licensed', title: 'Licensed FX Trading', badge: 'Regulatory Compliance', desc: 'Licensed FX brokers offer MetaQuotes platforms under regulatory requirements ensuring secure trading environments.', glowColor: 'rgba(238, 242, 255, 0.85)', modelFn: createModelOrbitTrack },
-  { id: 'industries', title: 'Industries Served', badge: 'Global Ecosystem', desc: 'Powering global liquidity providers, tier-1 investment banks, prime brokers, and proprietary trading desks.', glowColor: 'rgba(224, 242, 254, 0.8)', modelFn: createModelSpatialWave },
-  { id: 'edge_ai', title: '-Edge AI Pending', badge: 'Proprietary IP', desc: 'Proprietary patent-pending quantum state forecasting architecture for high-velocity currency markets.', glowColor: 'rgba(240, 253, 250, 0.8)', modelFn: createModelOrbitTrack }
-];
+function createModelWave() {
+  const g = new THREE.Group();
+  const coin = createMiniCoin(1.0, 0.18);
+  g.add(coin);
 
-// Pre-generate textures for the 9 core designs to avoid memory bloat
-const sharedTextures = CORE_DESIGNS.map(d => createCardCanvasTexture(d));
+  class SinCurve extends THREE.Curve {
+    getPoint(t) {
+      const tx = (t - 0.5) * 4.0;
+      const ty = Math.sin(t * Math.PI * 4) * 0.7;
+      const tz = Math.cos(t * Math.PI * 2) * 0.5;
+      return new THREE.Vector3(tx, ty, tz);
+    }
+  }
 
-// ─── Infinite Procedural Grid Setup (5x5 Modular Matrix = 25 Cards) ──
+  const waveGeo = new THREE.TubeGeometry(new SinCurve(), 64, 0.06, 8, false);
+  const waveMat = new THREE.MeshBasicMaterial({ color: 0xf472b6 });
+  const wave = new THREE.Mesh(waveGeo, waveMat);
+  g.add(wave);
+
+  g.userData = { coin, wave };
+  return g;
+}
+
+function getModelForType(type) {
+  switch (type) {
+    case 'ai-sphere': return createModelAiSphere();
+    case 'quantum': return createModelQuantum();
+    case 'pedestal': return createModelPedestal();
+    case 'loop': return createModelLoop();
+    case 'wave': return createModelWave();
+    default: return createModelAiSphere();
+  }
+}
+
+// ─── Infinite Procedural Matrix Setup (5x5 Grid = 25 Cards) ──────
 const CARD_WIDTH = 11.8;
 const CARD_HEIGHT = 8.0;
 const CARD_DEPTH = 0.16;
@@ -382,9 +473,6 @@ const cardMeshes = [];
 for (let r = 0; r < ROWS; r++) {
   for (let c = 0; c < COLS; c++) {
     const idx = r * COLS + c;
-    const designIdx = idx % CORE_DESIGNS.length;
-    const design = CORE_DESIGNS[designIdx];
-
     const posX = (c - (COLS - 1) / 2) * SPACING_X;
     const posY = ((ROWS - 1) / 2 - r) * SPACING_Y;
 
@@ -394,7 +482,6 @@ for (let r = 0; r < ROWS; r++) {
     // Card Mesh
     const cardGeo = new THREE.BoxGeometry(CARD_WIDTH, CARD_HEIGHT, CARD_DEPTH);
     const cardMat = new THREE.MeshPhysicalMaterial({
-      map: sharedTextures[designIdx],
       roughness: 0.18,
       metalness: 0.04,
       clearcoat: 0.65,
@@ -425,46 +512,76 @@ for (let r = 0; r < ROWS; r++) {
     shadowMesh.position.set(-0.5, -0.7, -0.4);
     cardGroup.add(shadowMesh);
 
-    // 3D Model
-    if (design.modelFn) {
-      const model = design.modelFn();
-      model.position.set(2.6, 0.1, 0.95);
-      cardGroup.add(model);
-      cardGroup.userData.model = model;
-    }
+    // Model placeholder slot
+    const modelContainer = new THREE.Group();
+    modelContainer.position.set(2.6, 0.1, 0.95);
+    cardGroup.add(modelContainer);
 
-    cardGroup.userData.design = design;
-    cardGroup.userData.designIdx = designIdx;
-    cardGroup.userData.baseGridPos = new THREE.Vector3(posX, posY, 0);
-    cardGroup.userData.currentGridPos = new THREE.Vector3(posX, posY, 0);
-    cardGroup.userData.index = idx;
-
-    // Animation state properties for flat transition
-    cardGroup.userData.targetLocalPos = cardGroup.position.clone();
-    cardGroup.userData.targetLocalQuat = new THREE.Quaternion().identity();
-    cardGroup.userData.targetScale = new THREE.Vector3(1, 1, 1);
-    cardGroup.userData.isFlat = false;
+    cardGroup.userData = {
+      index: idx,
+      baseGridPos: new THREE.Vector3(posX, posY, 0),
+      currentGridPos: new THREE.Vector3(posX, posY, 0),
+      targetLocalPos: cardGroup.position.clone(),
+      targetLocalQuat: new THREE.Quaternion().identity(),
+      targetScale: new THREE.Vector3(1, 1, 1),
+      isFlat: false,
+      cardMesh,
+      modelContainer,
+      article: null
+    };
 
     tapestryMasterGroup.add(cardGroup);
     cardMeshes.push(cardGroup);
   }
 }
 
-// ─── Flat-to-Screen Animation Controller ─────────────────────────
-let activeFlatCard = null;
-let isDrifting = true;
-let flatOpenedTime = 0;
+// ─── Virtualized Article Binding Engine ──────────────────────────
+function bindArticlesToGrid() {
+  if (activeArticles.length === 0) {
+    instructionText.textContent = `No articles found for "${currentSearch}". Try another query.`;
+    return;
+  }
 
+  cardMeshes.forEach((card, idx) => {
+    const article = activeArticles[idx % activeArticles.length];
+    card.userData.article = article;
+
+    // Update texture
+    const tex = createArticleCanvasTexture(article);
+    card.userData.cardMesh.material.map = tex;
+    card.userData.cardMesh.material.needsUpdate = true;
+
+    // Update 3D micro-model
+    const container = card.userData.modelContainer;
+    while (container.children.length > 0) {
+      container.remove(container.children[0]);
+    }
+    const model = getModelForType(article.modelType);
+    container.add(model);
+    card.userData.model = model;
+  });
+
+  if (currentSearch.trim() !== '') {
+    instructionText.textContent = `Found ${activeArticles.length} article(s) matching "${currentSearch}"`;
+  } else if (currentCategory !== 'All') {
+    instructionText.textContent = `Category: ${currentCategory} (${activeArticles.length} articles)`;
+  } else {
+    instructionText.textContent = 'Pan 3D library • Tap any card to inspect or read';
+  }
+}
+
+// Initial binding
+bindArticlesToGrid();
+
+// ─── Flat-to-Screen Transformation Controller ────────────────────
 function calculateFlatTransform() {
   const dist = 18.0;
   const vFovRad = (camera.fov * Math.PI) / 180;
   const visibleH = 2 * dist * Math.tan(vFovRad / 2);
   const visibleW = visibleH * camera.aspect;
 
-  // Portrait (mobile) vs Landscape (desktop)
   const isPortrait = camera.aspect < 1.0;
-  // On mobile portrait, card takes at most 88% width and 52% height (leaving ample margin for header & buttons)
-  // On landscape/desktop, card takes at most 70% width and 60% height
+  // Responsive occupancy leaving comfortable margins
   const maxOccupyW = isPortrait ? 0.88 : 0.70;
   const maxOccupyH = isPortrait ? 0.52 : 0.60;
 
@@ -475,16 +592,14 @@ function calculateFlatTransform() {
   const scaleByH = maxAllowedH / CARD_HEIGHT;
   const fitScale = Math.min(scaleByW, scaleByH);
 
-  // Calculate forward point squarely along camera optical centerline
   const forwardDir = new THREE.Vector3();
   camera.getWorldDirection(forwardDir);
   const targetWorldPos = camera.position.clone().add(forwardDir.multiplyScalar(dist));
 
-  // Convert to local coordinates in tapestryMasterGroup
   tapestryMasterGroup.updateMatrixWorld(true);
   const targetLocalPos = tapestryMasterGroup.worldToLocal(targetWorldPos);
 
-  // Calculate Target Quaternion so the card becomes 100% FLAT to the camera (0° tilt)
+  // Invert isometric tilt so card aligns 100% flat with camera sensor
   const masterInverseQuat = tapestryMasterGroup.quaternion.clone().invert();
   const targetLocalQuat = masterInverseQuat.multiply(camera.quaternion);
 
@@ -510,15 +625,13 @@ function bringCardFlatToScreen(cardGroup) {
   cardGroup.userData.targetLocalQuat.copy(transform.localQuat);
   cardGroup.userData.targetScale.set(transform.scale, transform.scale, transform.scale);
 
-  // Temporarily pause controls pan fighting while card is stationary in front
+  // Pause pan fighting while stationary
   controls.enabled = false;
 
-  // Show Close Button
-  btnCloseFlat.classList.remove('hidden');
-  instructionPill.innerHTML = '<span class="pill-icon">✨</span><span class="pill-text">Card view active • Tap button or outside to return</span>';
-
-  // Highlight bottom pill
-  updateActivePill(cardGroup.userData.designIdx);
+  // Show Thumb-Zone Actions
+  flatCardActions.classList.remove('hidden');
+  const article = cardGroup.userData.article;
+  instructionText.textContent = `Focused: "${article.title.substring(0, 38)}..." • Tap READ ARTICLE`;
 }
 
 function returnCardToGrid(cardGroup = activeFlatCard) {
@@ -527,16 +640,15 @@ function returnCardToGrid(cardGroup = activeFlatCard) {
   cardGroup.userData.isFlat = false;
   cardGroup.renderOrder = 0;
 
-  // Return to current wrapped grid position
   cardGroup.userData.targetLocalPos.copy(cardGroup.userData.currentGridPos);
-  cardGroup.userData.targetLocalQuat.identity(); // Conforms back to isometric master rotation
+  cardGroup.userData.targetLocalQuat.identity();
   cardGroup.userData.targetScale.set(1, 1, 1);
 
   activeFlatCard = null;
   controls.enabled = true;
 
-  btnCloseFlat.classList.add('hidden');
-  instructionPill.innerHTML = '<span class="pill-icon">👆</span><span class="pill-text">Pan infinitely in any direction • Click or hold any card to bring flat</span>';
+  flatCardActions.classList.add('hidden');
+  instructionText.textContent = 'Pan 3D library • Tap any card to inspect or read';
 }
 
 btnCloseFlat.addEventListener('click', (e) => {
@@ -544,7 +656,220 @@ btnCloseFlat.addEventListener('click', (e) => {
   returnCardToGrid();
 });
 
-// ─── Click / Press-and-Hold Detection ────────────────────────────
+// ─── Markdown Parser for Article Reader ──────────────────────────
+function parseMarkdown(md) {
+  let html = '';
+  const lines = md.trim().split('\n');
+  let inCode = false;
+  let codeBuffer = [];
+  let inList = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.trim().startsWith('```')) {
+      if (inCode) {
+        html += `<pre><code>${codeBuffer.join('\n')}</code></pre>\n`;
+        codeBuffer = [];
+        inCode = false;
+      } else {
+        inCode = true;
+      }
+      continue;
+    }
+
+    if (inCode) {
+      codeBuffer.push(line.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+      continue;
+    }
+
+    if (line.trim().startsWith('* ') || line.trim().startsWith('- ')) {
+      if (!inList) {
+        html += '<ul>\n';
+        inList = true;
+      }
+      const item = line.trim().substring(2);
+      html += `<li>${formatInline(item)}</li>\n`;
+      continue;
+    } else if (inList) {
+      html += '</ul>\n';
+      inList = false;
+    }
+
+    if (line.trim().startsWith('# ')) {
+      html += `<h1 class="article-hero-title">${formatInline(line.trim().substring(2))}</h1>\n`;
+    } else if (line.trim().startsWith('## ')) {
+      html += `<h2>${formatInline(line.trim().substring(3))}</h2>\n`;
+    } else if (line.trim().startsWith('### ')) {
+      html += `<h3>${formatInline(line.trim().substring(4))}</h3>\n`;
+    } else if (line.trim().startsWith('> ')) {
+      html += `<blockquote>${formatInline(line.trim().substring(2))}</blockquote>\n`;
+    } else if (line.trim() === '---') {
+      html += `<hr style="margin: 32px 0; border: none; border-top: 1px solid #e2e8f0;" />\n`;
+    } else if (line.trim() !== '') {
+      html += `<p>${formatInline(line.trim())}</p>\n`;
+    }
+  }
+
+  if (inList) html += '</ul>\n';
+  if (inCode) html += `<pre><code>${codeBuffer.join('\n')}</code></pre>\n`;
+  return html;
+}
+
+function formatInline(str) {
+  return str
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\`(.*?)\`/g, '<code>$1</code>');
+}
+
+// ─── Serene Full Article Reader Controller (Layer C) ─────────────
+function openArticleReader(article) {
+  if (!article) return;
+
+  readerNavCategory.textContent = article.category.toUpperCase();
+  readerNavReadTime.textContent = article.readingTime;
+
+  // Render hero header + parsed markdown body
+  const parsedBody = parseMarkdown(article.content);
+  readerArticleContent.innerHTML = `
+    <header class="article-hero-header">
+      <span class="article-hero-category">${article.category}</span>
+      <div class="article-hero-meta-row">
+        <span class="meta-author">By ${article.author}</span>
+        <span>•</span>
+        <span>${article.publishedAt}</span>
+        <span>•</span>
+        <span>${article.readingTime}</span>
+      </div>
+    </header>
+    <div class="article-excerpt-callout">${article.excerpt}</div>
+    ${parsedBody}
+    <div class="reader-tags-row">
+      ${article.tags.map(t => `<span class="reader-tag">#${t}</span>`).join('')}
+    </div>
+  `;
+
+  // Render author bio box
+  readerFooterAuthor.innerHTML = `
+    <div class="author-avatar">${article.author.charAt(0)}</div>
+    <div class="author-info-wrap">
+      <h4>${article.author}</h4>
+      <p>${article.authorRole} • Exito Publishing Contributor</p>
+    </div>
+  `;
+
+  // Update Bookmark State
+  const isSaved = savedArticleIds.has(article.id);
+  bookmarkLabel.textContent = isSaved ? 'Saved' : 'Save';
+  btnReaderBookmark.style.borderColor = isSaved ? '#6366f1' : '#cbd5e1';
+
+  readerModal.classList.remove('hidden');
+  readerModal.setAttribute('aria-hidden', 'false');
+  readerScrollViewport.scrollTop = 0;
+  readerProgressBar.style.width = '0%';
+}
+
+function closeArticleReader() {
+  readerModal.classList.add('hidden');
+  readerModal.setAttribute('aria-hidden', 'true');
+  // Return card smoothly back to stable 3D library
+  returnCardToGrid();
+}
+
+btnReadArticle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (activeFlatCard && activeFlatCard.userData.article) {
+    openArticleReader(activeFlatCard.userData.article);
+  }
+});
+
+btnReaderBack.addEventListener('click', closeArticleReader);
+btnReaderClose.addEventListener('click', closeArticleReader);
+btnReaderFooterBack.addEventListener('click', closeArticleReader);
+
+btnReaderBookmark.addEventListener('click', () => {
+  if (activeFlatCard && activeFlatCard.userData.article) {
+    const id = activeFlatCard.userData.article.id;
+    if (savedArticleIds.has(id)) {
+      savedArticleIds.delete(id);
+      bookmarkLabel.textContent = 'Save';
+      btnReaderBookmark.style.borderColor = '#cbd5e1';
+    } else {
+      savedArticleIds.add(id);
+      bookmarkLabel.textContent = 'Saved';
+      btnReaderBookmark.style.borderColor = '#6366f1';
+    }
+  }
+});
+
+// Scroll reading progress indicator
+readerScrollViewport.addEventListener('scroll', () => {
+  const scrollTotal = readerScrollViewport.scrollHeight - readerScrollViewport.clientHeight;
+  if (scrollTotal > 0) {
+    const percent = (readerScrollViewport.scrollTop / scrollTotal) * 100;
+    readerProgressBar.style.width = `${percent}%`;
+  }
+});
+
+// ─── Search & Category Filter Listeners (Layer B) ────────────────
+inputSearch.addEventListener('input', (e) => {
+  const q = e.target.value;
+  btnClearSearch.classList.toggle('hidden', q.trim() === '');
+
+  clearTimeout(searchDebounceTimeout);
+  searchDebounceTimeout = setTimeout(() => {
+    currentSearch = q;
+    activeArticles = queryArticles(ARTICLES, currentSearch, currentCategory);
+    if (activeFlatCard) returnCardToGrid();
+    bindArticlesToGrid();
+  }, 120);
+});
+
+btnClearSearch.addEventListener('click', () => {
+  inputSearch.value = '';
+  btnClearSearch.classList.add('hidden');
+  currentSearch = '';
+  activeArticles = queryArticles(ARTICLES, currentSearch, currentCategory);
+  if (activeFlatCard) returnCardToGrid();
+  bindArticlesToGrid();
+});
+
+categoryPills.forEach(pill => {
+  pill.addEventListener('click', () => {
+    categoryPills.forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+
+    currentCategory = pill.dataset.category;
+    activeArticles = queryArticles(ARTICLES, currentSearch, currentCategory);
+    if (activeFlatCard) returnCardToGrid();
+    bindArticlesToGrid();
+  });
+});
+
+btnResetView.addEventListener('click', () => {
+  inputSearch.value = '';
+  btnClearSearch.classList.add('hidden');
+  currentSearch = '';
+  currentCategory = 'All';
+  categoryPills.forEach(p => p.classList.toggle('active', p.dataset.category === 'All'));
+
+  activeArticles = queryArticles(ARTICLES, '', 'All');
+  if (activeFlatCard) returnCardToGrid();
+  bindArticlesToGrid();
+
+  camera.position.copy(ISO_CAM_POS);
+  controls.target.copy(ISO_LOOK_AT);
+  controls.update();
+});
+
+btnToggleDrift.addEventListener('click', () => {
+  isDrifting = !isDrifting;
+  driftLabel.textContent = isDrifting ? '✨ Drift: ON' : '⏸️ Drift: PAUSED';
+  btnToggleDrift.style.borderColor = isDrifting ? '#6366f1' : '#cbd5e1';
+});
+
+// ─── Pointer Interaction & Touch Handling (Layer A) ──────────────
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 
@@ -554,7 +879,12 @@ let heldCard = null;
 let holdTimeout = null;
 
 function onPointerDown(e) {
-  if (e.target.closest('#studio-header') || e.target.closest('#bottom-card-bar') || e.target.closest('#btn-close-flat')) {
+  if (
+    e.target.closest('#studio-header') ||
+    e.target.closest('#bottom-card-bar') ||
+    e.target.closest('#flat-card-actions') ||
+    e.target.closest('#article-reader-modal')
+  ) {
     return;
   }
 
@@ -574,10 +904,10 @@ function onPointerDown(e) {
       obj = obj.parent;
     }
 
-    if (obj.userData && obj.userData.design) {
+    if (obj.userData && obj.userData.article) {
       heldCard = obj;
-      // Start Press-and-Hold timer (240ms threshold)
       clearTimeout(holdTimeout);
+      // Press-and-hold (240ms threshold)
       holdTimeout = setTimeout(() => {
         if (heldCard) {
           bringCardFlatToScreen(heldCard);
@@ -590,7 +920,6 @@ function onPointerDown(e) {
 }
 
 function onPointerMove(e) {
-  // If dragged more than 8px, cancel hold timer (user is panning the grid)
   const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
   if (dist > 8) {
     clearTimeout(holdTimeout);
@@ -601,15 +930,13 @@ function onPointerUp(e) {
   clearTimeout(holdTimeout);
   const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
 
-  // If tap/click without drag (quick click or tap)
   if (dist < 8) {
     if (activeFlatCard) {
-      // If card was just brought flat via hold (<350ms ago), don't dismiss on this finger release!
+      // If opened < 350ms ago (from hold), prevent instant dismiss on finger lift
       if (Date.now() - flatOpenedTime > 350) {
         returnCardToGrid();
       }
     } else if (heldCard) {
-      // Tap on card -> bring flat to screen!
       bringCardFlatToScreen(heldCard);
     }
   }
@@ -620,43 +947,6 @@ window.addEventListener('pointerdown', onPointerDown);
 window.addEventListener('pointermove', onPointerMove);
 window.addEventListener('pointerup', onPointerUp);
 
-// ─── Header & Bottom Controls ────────────────────────────────────
-btnToggleDrift.addEventListener('click', () => {
-  isDrifting = !isDrifting;
-  driftLabel.textContent = isDrifting ? '✨ Drift: ON' : '⏸️ Drift: PAUSED';
-  btnToggleDrift.style.borderColor = isDrifting ? '#6366f1' : '#cbd5e1';
-});
-
-btnResetView.addEventListener('click', () => {
-  returnCardToGrid();
-  camera.position.copy(ISO_CAM_POS);
-  controls.target.copy(ISO_LOOK_AT);
-  controls.update();
-});
-
-function updateActivePill(typeIdx) {
-  cardPills.forEach(pill => {
-    const isActive = parseInt(pill.dataset.type, 10) === typeIdx;
-    pill.classList.toggle('active', isActive);
-    if (isActive) {
-      pill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
-  });
-}
-
-cardPills.forEach(pill => {
-  pill.addEventListener('click', () => {
-    const typeIdx = parseInt(pill.dataset.type, 10);
-    updateActivePill(typeIdx);
-
-    // Find the closest card matching this type
-    const targetCard = cardMeshes.find(c => c.userData.designIdx === typeIdx);
-    if (targetCard) {
-      bringCardFlatToScreen(targetCard);
-    }
-  });
-});
-
 // ─── Main Animation & Render Loop ────────────────────────────────
 const clock = new THREE.Clock();
 
@@ -665,17 +955,16 @@ function animate() {
 
   const elapsedTime = clock.getElapsedTime();
 
-  // 1. Controls Update
+  // 1. Controls update
   if (controls.enabled) {
     controls.update();
   }
 
-  // 2. Infinite Wrapping & Floating Logic
-  // Check camera target position in local space
+  // 2. Toroidal Matrix Wrapping relative to camera target
   const localTarget = tapestryMasterGroup.worldToLocal(controls.target.clone());
 
   cardMeshes.forEach((card, idx) => {
-    // If this card is currently flat in front of screen, do not wrap or drift!
+    // If flat in front, interpolate smoothly to target flat transform
     if (card.userData.isFlat) {
       card.position.lerp(card.userData.targetLocalPos, 0.08);
       card.quaternion.slerp(card.userData.targetLocalQuat, 0.08);
@@ -683,7 +972,6 @@ function animate() {
       return;
     }
 
-    // Infinite Seamless Modular Wrapping (Cards wrap around camera target)
     let curX = card.userData.currentGridPos.x;
     let curY = card.userData.currentGridPos.y;
 
@@ -704,18 +992,17 @@ function animate() {
     card.userData.currentGridPos.x = curX;
     card.userData.currentGridPos.y = curY;
 
-    // Gentle wave drift
+    // Harmonic wave drift
     const floatZ = isDrifting ? Math.sin(elapsedTime * 1.4 + idx * 0.7) * 0.28 : 0;
     const floatY = isDrifting ? Math.sin(elapsedTime * 1.2 + idx * 0.5) * 0.15 : 0;
 
-    // Smooth transition back to grid if returning
     card.userData.targetLocalPos.set(curX, curY + floatY, floatZ);
 
     card.position.lerp(card.userData.targetLocalPos, 0.06);
     card.quaternion.slerp(card.userData.targetLocalQuat, 0.06);
     card.scale.lerp(card.userData.targetScale, 0.06);
 
-    // Animate embedded 3D models on cards
+    // Animate embedded 3D micro-models
     const model = card.userData.model;
     if (model) {
       if (model.userData.points) {
@@ -734,11 +1021,8 @@ function animate() {
           t.rotation.z += 0.01 * (tidx + 1);
         });
       }
-      if (model.userData.tube) {
+      if (model.userData.loop) {
         model.userData.coin.rotation.y += 0.018;
-      }
-      if (model.userData.track) {
-        model.userData.coin.rotation.y += 0.02;
       }
       if (model.userData.wave) {
         model.userData.wave.rotation.x = elapsedTime * 0.2;
