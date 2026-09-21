@@ -3,11 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>True 3D Spatial Article Reader · EXITO</title>
+  <title>The Architecture of Synthetic Consciousness · True 3D Spatial Article</title>
+  
+  <!-- Fonts: Plus Jakarta Sans for UI, Newsreader / Serif for Editorial Body, JetBrains Mono for Code -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="./style.css">
+
   <script type="importmap">
   {
     "imports": {
@@ -16,7 +20,7 @@
   }
   </script>
 </head>
-<body>
+<body class="mode-spatial world-library motion-full">
   <!-- Hardware-Accelerated 3D WebGL Canvas Layer -->
   <div id="webgl-stage">
     <canvas id="spatial-canvas"></canvas>
@@ -25,80 +29,277 @@
   <!-- Cosmic Ambient Glow Layer -->
   <div class="space-ambient-glow" id="space-ambient-glow"></div>
 
-  <!-- Top Spatial HUD Bar -->
+  <!-- Top Spatial HUD Header -->
   <header id="spatial-hud-header">
     <div class="hud-left">
       <a href="../index.html" class="hud-return-btn" title="Return to 3D Card Grid">
         <span class="chevron">&lt;</span>
-        <span class="btn-text">3D LIBRARY</span>
+        <span class="btn-text">3D STUDIO</span>
       </a>
       <div class="hud-divider"></div>
-      <div class="article-info-pill">
+      <button class="hud-action-pill" id="btn-toggle-outline" title="Open Article Outline & Spatial Minimap">
+        <span class="pill-icon">📑</span>
+        <span class="pill-label">Outline</span>
+      </button>
+      <div class="article-info-pill" id="hud-article-pill">
         <span class="glow-indicator"></span>
-        <span id="hud-article-title">THE ARCHITECTURE OF THOUGHT</span>
+        <span id="hud-article-title">THE ARCHITECTURE OF SYNTHETIC CONSCIOUSNESS</span>
       </div>
     </div>
 
-    <!-- 3D Spatial Mode Switcher -->
+    <!-- Mode Switcher (Read, Focus, Explore, Hybrid, 2D) -->
     <div class="hud-center">
       <div class="mode-switcher-tray" role="tablist">
-        <button class="spatial-mode-btn active" data-mode="book" title="Physical 3D Cyber-Book with realistic curved page flip">
+        <button class="spatial-mode-btn active" data-mode="spatial" title="Spatial 3D Reading through the environment">
+          <span class="mode-icon">🌌</span>
+          <span class="mode-name">3D Read</span>
+        </button>
+        <button class="spatial-mode-btn" data-mode="focus" title="Distraction-free Focus Reading with crystal-clear typography">
           <span class="mode-icon">📖</span>
-          <span class="mode-name">3D Cyber-Book</span>
+          <span class="mode-name">Focus</span>
         </button>
-        <button class="spatial-mode-btn" data-mode="ribbon" title="3D Curved Panoramic Ribbon wrapping around viewer">
-          <span class="mode-icon">🌀</span>
-          <span class="mode-name">Curved Ribbon</span>
+        <button class="spatial-mode-btn" data-mode="hybrid" title="70% Clean Editorial Article + 30% Live Spatial Scene">
+          <span class="mode-icon">⚡</span>
+          <span class="mode-name">Hybrid</span>
         </button>
-        <button class="spatial-mode-btn" data-mode="galaxy" title="Deep-Z Spatial Galaxy Flythrough across floating monoliths">
-          <span class="mode-icon">🚀</span>
-          <span class="mode-name">Deep-Z Galaxy</span>
+        <button class="spatial-mode-btn" data-mode="explore" title="Free 3D Exploration & Inspection of Objects">
+          <span class="mode-icon">🧭</span>
+          <span class="mode-name">Explore</span>
+        </button>
+        <button class="spatial-mode-btn" data-mode="fallback" title="Traditional Clean 2D Article Layout">
+          <span class="mode-icon">📄</span>
+          <span class="mode-name">2D View</span>
         </button>
       </div>
     </div>
 
     <div class="hud-right">
+      <!-- 3D World Archetype Switcher -->
+      <div class="world-switcher-dropdown" id="world-dropdown">
+        <button class="hud-action-pill" id="btn-world-select" title="Switch 3D Reading World">
+          <span class="pill-icon">🏛️</span>
+          <span id="active-world-name">Library</span>
+          <span class="dropdown-caret">▾</span>
+        </button>
+        <div class="world-options-menu" id="world-menu">
+          <button class="world-opt active" data-world="library">
+            <span class="opt-icon">🏛️</span>
+            <div class="opt-text">
+              <strong>Spatial Library</strong>
+              <small>Pedestals, steles & bookshelf arches</small>
+            </div>
+          </button>
+          <button class="world-opt" data-world="tunnel">
+            <span class="opt-icon">🌀</span>
+            <div class="opt-text">
+              <strong>Knowledge Tunnel</strong>
+              <small>Continuous luminous corridor</small>
+            </div>
+          </button>
+          <button class="world-opt" data-world="constellation">
+            <span class="opt-icon">✨</span>
+            <div class="opt-text">
+              <strong>Constellation</strong>
+              <small>Cosmic synaptic nexus & clusters</small>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Audio Toggle Pill -->
       <button class="hud-action-pill" id="btn-toggle-audio" title="Toggle Procedural Spatial Audio">
         <span id="audio-icon">🔊</span>
-        <span class="action-label" id="audio-label">SFX: ON</span>
+        <span class="pill-label" id="audio-label">SFX: ON</span>
       </button>
-      <button class="hud-action-pill" id="btn-toggle-autorotate" title="Toggle Gentle 3D Auto-Orbit">
-        <span id="orbit-icon">🔄</span>
-        <span class="action-label">Orbit</span>
+
+      <!-- Motion Setting Pill (Full / Reduced / Off) -->
+      <button class="hud-action-pill" id="btn-toggle-motion" title="Toggle Motion Sensitivity">
+        <span id="motion-icon">🚀</span>
+        <span class="pill-label" id="motion-label">Motion</span>
       </button>
-      <button class="hud-action-pill" id="btn-reset-cam" title="Reset Camera View to Front">
-        <span>🎯 Reset</span>
+
+      <!-- Camera Re-center Button -->
+      <button class="hud-action-pill" id="btn-reset-cam" title="Re-Center Camera to Active Section">
+        <span>🎯 Re-Center</span>
+      </button>
+
+      <!-- Debug Toggle Pill -->
+      <button class="hud-action-pill btn-debug" id="btn-toggle-debug" title="Toggle Developer Diagnostics">
+        <span>🐞 Debug</span>
       </button>
     </div>
   </header>
 
-  <!-- Interactive 3D Status & Gesture Hint -->
+  <!-- Left Slide-out Article Outline & Spatial Minimap -->
+  <aside id="spatial-outline-drawer" class="outline-drawer">
+    <div class="outline-header">
+      <div class="outline-title-wrap">
+        <span class="outline-tag">SPATIAL INDEX</span>
+        <h3>Article Outline</h3>
+      </div>
+      <button class="btn-close-outline" id="btn-close-outline" title="Close Index">✕</button>
+    </div>
+    <div class="outline-progress-summary">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="outline-progress-fill" style="width: 12.5%;"></div>
+      </div>
+      <div class="progress-stats">
+        <span id="outline-section-label">Section 1 of 8</span>
+        <span id="outline-percentage">12% Read</span>
+      </div>
+    </div>
+    <nav class="outline-nav-list" id="outline-nav-list">
+      <!-- Injected via JavaScript from ARTICLE_DATA -->
+    </nav>
+  </aside>
+  <div id="outline-backdrop" class="outline-backdrop"></div>
+
+  <!-- Interactive 3D Spatial Status & Gesture Hint -->
   <div id="spatial-hint-pill" class="spatial-hint-pill">
     <span class="hint-icon">✨</span>
-    <span id="hint-message" class="hint-message">Drag to orbit book in 3D • Click Next/Prev or swipe to flip pages</span>
+    <span id="hint-message" class="hint-message">Scroll or swipe to travel through article space • Click 3D objects to inspect</span>
   </div>
+
+  <!-- Spatial Reading Focus Surface / In-World Crystal Typography Panel -->
+  <main id="spatial-focus-surface" class="spatial-focus-surface">
+    <div class="focus-surface-container">
+      <div class="surface-top-meta">
+        <span class="surface-zone-tag" id="focus-zone-tag">Chamber of Inception</span>
+        <span class="surface-chapter-tag" id="focus-chapter-tag">SECTION 01 / 08</span>
+      </div>
+
+      <h2 class="surface-title" id="focus-title">PROLOGUE: THE EMERGENCE THRESHOLD</h2>
+
+      <!-- Multi-Layer Information Tab Strip (Section 24) -->
+      <div class="layer-tab-strip">
+        <button class="layer-tab active" data-layer="essential">
+          <span class="tab-dot"></span>
+          Layer 1: Essential
+        </button>
+        <button class="layer-tab" data-layer="context">
+          <span class="tab-dot"></span>
+          Layer 2: Context
+        </button>
+        <button class="layer-tab" data-layer="research">
+          <span class="tab-dot"></span>
+          Layer 3: Deep Research
+        </button>
+      </div>
+
+      <!-- Essential Content (Paragraphs, Quotes, Interactive Embeds) -->
+      <div class="layer-content-panel active" id="panel-layer-essential">
+        <div class="surface-paragraphs" id="focus-paragraphs">
+          <!-- Dynamically populated from ARTICLE_DATA -->
+        </div>
+
+        <!-- 3D Quote Display in Surface -->
+        <div class="surface-quote-box" id="surface-quote-box" style="display: none;">
+          <div class="quote-mark">“</div>
+          <p class="quote-text" id="surface-quote-text"></p>
+          <span class="quote-author" id="surface-quote-author"></span>
+        </div>
+
+        <!-- Surface Interactive Object Trigger Notice -->
+        <div class="surface-interactive-badge" id="surface-interactive-badge" style="display: none;">
+          <span class="badge-icon">🔮</span>
+          <span class="badge-text" id="surface-interactive-text">3D Visualization active in scene</span>
+          <button class="btn-inspect-3d" id="btn-inspect-3d">Inspect in 3D ↗</button>
+        </div>
+      </div>
+
+      <!-- Context Layer Panel -->
+      <div class="layer-content-panel" id="panel-layer-context">
+        <div class="context-callout">
+          <div class="callout-header">
+            <span class="callout-icon">💡</span>
+            <h4>HISTORICAL & NEUROLOGICAL CONTEXT</h4>
+          </div>
+          <p id="focus-context-text" class="callout-body"></p>
+        </div>
+      </div>
+
+      <!-- Deep Research Layer Panel -->
+      <div class="layer-content-panel" id="panel-layer-research">
+        <div class="research-callout">
+          <div class="callout-header">
+            <span class="callout-icon">🔬</span>
+            <h4>MATHEMATICAL & EMPIRICAL SPECIFICATIONS</h4>
+          </div>
+          <p id="focus-research-text" class="callout-body code-style"></p>
+        </div>
+      </div>
+    </div>
+  </main>
 
   <!-- Bottom Thumb-Zone Controls (Mobile-First Ergonomics) -->
   <footer id="spatial-thumb-bar">
-    <button class="thumb-nav-btn" id="btn-nav-prev" title="Previous Page or Chapter">
+    <button class="thumb-nav-btn" id="btn-nav-prev" title="Previous Section">
       <span class="btn-arrow">&lt;</span>
       <span class="btn-text">PREV</span>
     </button>
 
-    <div class="thumb-progress-group">
-      <span class="progress-chapter-badge" id="hud-chapter-badge">CH 01 / 05</span>
+    <div class="thumb-progress-group" id="btn-open-outline-thumb">
+      <span class="progress-chapter-badge" id="hud-chapter-badge">SEC 01 / 08</span>
       <div class="progress-mini-track">
-        <div class="progress-mini-fill" id="hud-progress-fill" style="width: 20%;"></div>
+        <div class="progress-mini-fill" id="hud-progress-fill" style="width: 12.5%;"></div>
       </div>
-      <span class="progress-detail" id="hud-page-detail">Page 1 of 5</span>
+      <span class="progress-detail" id="hud-page-detail">Chamber of Inception</span>
     </div>
 
-    <button class="thumb-nav-btn" id="btn-nav-next" title="Next Page or Chapter">
+    <button class="thumb-nav-btn" id="btn-nav-next" title="Next Section">
       <span class="btn-text">NEXT</span>
       <span class="btn-arrow">&gt;</span>
     </button>
   </footer>
 
+  <!-- 3D Object Deep Inspection Modal -->
+  <div id="spatial-inspect-modal" class="inspect-modal">
+    <div class="modal-card">
+      <button class="modal-close-btn" id="modal-close-btn">✕</button>
+      <div class="modal-badge" id="modal-badge">SPATIAL INSPECTION</div>
+      <h3 class="modal-title" id="modal-title">Object Inspection</h3>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="modal-btn-primary" id="modal-btn-close">Return to Reading</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Complete 2D Fallback View (Accessibility & Reduced Motion / Weak Hardware) -->
+  <div id="fallback-2d-view" class="fallback-2d-view">
+    <div class="fallback-container">
+      <header class="fallback-header">
+        <div class="fallback-badge">2D ACCESSIBLE EDITORIAL VIEW</div>
+        <h1 class="fallback-title">THE ARCHITECTURE OF SYNTHETIC CONSCIOUSNESS</h1>
+        <p class="fallback-subtitle">From Deep Neural Manifolds to Spatial Cognition and the Emergence of Synthetic Mind</p>
+        <div class="fallback-meta">
+          <span>By Dr. Elena Vance</span> • <span>September 2026</span> • <span>14 Min Read</span>
+        </div>
+      </header>
+
+      <div class="fallback-body" id="fallback-body-content">
+        <!-- Rendered dynamically from ARTICLE_DATA -->
+      </div>
+
+      <footer class="fallback-footer">
+        <button class="btn-return-3d" id="btn-return-3d">Return to True 3D Spatial Reader 🌌</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Developer Diagnostic HUD -->
+  <div id="debug-hud" class="debug-hud" style="display: none;">
+    <div class="debug-title">DEVELOPER METRICS (3D ENGINE)</div>
+    <div class="debug-row"><span>FPS:</span> <strong id="dbg-fps">60</strong></div>
+    <div class="debug-row"><span>Draw Calls:</span> <strong id="dbg-drawcalls">12</strong></div>
+    <div class="debug-row"><span>Meshes / Geo:</span> <strong id="dbg-objects">48 / 24</strong></div>
+    <div class="debug-row"><span>Active World:</span> <strong id="dbg-world">Library</strong></div>
+    <div class="debug-row"><span>Active Section:</span> <strong id="dbg-section">0 (Intro)</strong></div>
+    <div class="debug-row"><span>Cam Position:</span> <strong id="dbg-cam-pos">0.0, 3.0, 16.0</strong></div>
+    <div class="debug-row"><span>Cam Target:</span> <strong id="dbg-cam-target">0.0, 1.5, 0.0</strong></div>
+  </div>
+
+  <!-- Main Spatial Engine Script -->
   <script type="module" src="./app.js"></script>
 </body>
 </html>
