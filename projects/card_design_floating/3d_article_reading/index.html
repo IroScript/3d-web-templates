@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>3D Spatial Article Reading Experience · EXITO</title>
+  <title>True 3D Spatial Article Reader · EXITO</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css">
   <script type="importmap">
   {
@@ -16,247 +16,88 @@
   }
   </script>
 </head>
-<body class="theme-light-glass">
-  <!-- Dynamic 3D WebGL Canvas Layer -->
-  <div id="canvas-container">
+<body>
+  <!-- Hardware-Accelerated 3D WebGL Canvas Layer -->
+  <div id="webgl-stage">
     <canvas id="spatial-canvas"></canvas>
   </div>
 
-  <!-- Ambient Lightspace Backdrop (Color Shifts with Reading Progress) -->
-  <div class="dynamic-ambient-glow" id="ambient-lightspace"></div>
+  <!-- Cosmic Ambient Glow Layer -->
+  <div class="space-ambient-glow" id="space-ambient-glow"></div>
 
-  <!-- Top Global Navigation & 3D Experience Mode Switcher -->
-  <header id="spatial-header">
-    <div class="header-left">
-      <a href="../index.html" class="nav-back-link" title="Return to 3D Card Grid">
+  <!-- Top Spatial HUD Bar -->
+  <header id="spatial-hud-header">
+    <div class="hud-left">
+      <a href="../index.html" class="hud-return-btn" title="Return to 3D Card Grid">
         <span class="chevron">&lt;</span>
-        <span class="brand-text">3D LIBRARY</span>
+        <span class="btn-text">3D LIBRARY</span>
       </a>
-      <div class="header-divider"></div>
-      <div class="reading-meta-badge">
-        <span class="pulse-dot"></span>
-        <span id="lightspace-indicator">09:00 AM · AURORA DAWN</span>
+      <div class="hud-divider"></div>
+      <div class="article-info-pill">
+        <span class="glow-indicator"></span>
+        <span id="hud-article-title">THE ARCHITECTURE OF THOUGHT</span>
       </div>
     </div>
 
-    <!-- 3D Experience Mode Switcher (The 3 Paradigms) -->
-    <div class="header-center">
-      <div class="mode-pill-switcher" role="tablist">
-        <button class="mode-btn active" data-mode="narrative" role="tab" aria-selected="true" title="Scrollytelling + 3D Contextual Transformation">
-          <span class="icon">🌌</span>
-          <span class="label">Narrative 3D</span>
+    <!-- 3D Spatial Mode Switcher -->
+    <div class="hud-center">
+      <div class="mode-switcher-tray" role="tablist">
+        <button class="spatial-mode-btn active" data-mode="book" title="Physical 3D Cyber-Book with realistic curved page flip">
+          <span class="mode-icon">📖</span>
+          <span class="mode-name">3D Cyber-Book</span>
         </button>
-        <button class="mode-btn" data-mode="journal" role="tab" aria-selected="false" title="Interactive 3D Book Page Flip">
-          <span class="icon">📖</span>
-          <span class="label">3D Journal Flip</span>
+        <button class="spatial-mode-btn" data-mode="ribbon" title="3D Curved Panoramic Ribbon wrapping around viewer">
+          <span class="mode-icon">🌀</span>
+          <span class="mode-name">Curved Ribbon</span>
         </button>
-        <button class="mode-btn" data-mode="vision" role="tab" aria-selected="false" title="Apple Vision Pro Spatial Glass HUD">
-          <span class="icon">👓</span>
-          <span class="label">Vision Pro HUD</span>
+        <button class="spatial-mode-btn" data-mode="galaxy" title="Deep-Z Spatial Galaxy Flythrough across floating monoliths">
+          <span class="mode-icon">🚀</span>
+          <span class="mode-name">Deep-Z Galaxy</span>
         </button>
       </div>
     </div>
 
-    <div class="header-right">
-      <button class="icon-pill-btn" id="btn-toggle-theme" title="Toggle Obsidian Dark / Serene Glass Mode">
-        <span id="theme-icon">🌙</span>
+    <div class="hud-right">
+      <button class="hud-action-pill" id="btn-toggle-audio" title="Toggle Procedural Spatial Audio">
+        <span id="audio-icon">🔊</span>
+        <span class="action-label" id="audio-label">SFX: ON</span>
       </button>
-      <button class="icon-pill-btn" id="btn-toggle-dof" title="Toggle Depth-of-Field Paragraph Focus">
-        <span>🎯 Focus: ON</span>
+      <button class="hud-action-pill" id="btn-toggle-autorotate" title="Toggle Gentle 3D Auto-Orbit">
+        <span id="orbit-icon">🔄</span>
+        <span class="action-label">Orbit</span>
+      </button>
+      <button class="hud-action-pill" id="btn-reset-cam" title="Reset Camera View to Front">
+        <span>🎯 Reset</span>
       </button>
     </div>
   </header>
 
-  <!-- Sticky Reading Progress Header Line -->
-  <div class="reading-progress-track">
-    <div id="reading-progress-bar" class="reading-progress-bar"></div>
+  <!-- Interactive 3D Status & Gesture Hint -->
+  <div id="spatial-hint-pill" class="spatial-hint-pill">
+    <span class="hint-icon">✨</span>
+    <span id="hint-message" class="hint-message">Drag to orbit book in 3D • Click Next/Prev or swipe to flip pages</span>
   </div>
 
-  <!-- Spatial Chapter Knowledge Graph (Floating Left Nav) -->
-  <aside id="spatial-knowledge-graph" class="knowledge-graph-panel" aria-label="3D Chapter Navigator">
-    <div class="graph-header">
-      <span class="graph-icon">🕸️</span>
-      <span class="graph-title">SPATIAL INDEX</span>
-    </div>
-    <ul class="chapter-node-list" id="chapter-node-list">
-      <li class="chapter-node active" data-chapter="0">
-        <span class="node-bullet"></span>
-        <span class="node-label">I. Quantum Dawn</span>
-      </li>
-      <li class="chapter-node" data-chapter="1">
-        <span class="node-bullet"></span>
-        <span class="node-label">II. Neural Mesh</span>
-      </li>
-      <li class="chapter-node" data-chapter="2">
-        <span class="node-bullet"></span>
-        <span class="node-label">III. Orbital Foundries</span>
-      </li>
-      <li class="chapter-node" data-chapter="3">
-        <span class="node-bullet"></span>
-        <span class="node-label">IV. Living Bio-Silicon</span>
-      </li>
-      <li class="chapter-node" data-chapter="4">
-        <span class="node-bullet"></span>
-        <span class="node-label">V. The Post-Digital Era</span>
-      </li>
-    </ul>
-  </aside>
+  <!-- Bottom Thumb-Zone Controls (Mobile-First Ergonomics) -->
+  <footer id="spatial-thumb-bar">
+    <button class="thumb-nav-btn" id="btn-nav-prev" title="Previous Page or Chapter">
+      <span class="btn-arrow">&lt;</span>
+      <span class="btn-text">PREV</span>
+    </button>
 
-  <!-- Main Viewport Container (Switchable between Narrative & 3D Journal) -->
-  <main id="spatial-reading-viewport" class="spatial-viewport mode-narrative">
-    
-    <!-- MODE 1 & 3: Narrative Scroll & Vision Pro Prose Viewport -->
-    <div id="narrative-scroll-area" class="narrative-scroll-area">
-      <article class="spatial-glass-slab" id="spatial-glass-slab">
-        
-        <!-- Article Header -->
-        <header class="slab-hero-header">
-          <div class="slab-badge-row">
-            <span class="category-chip">QUANTUM & COGNITIVE PHYSICS</span>
-            <span class="reading-estimate">⏱ 7 MIN READ • 5 CHAPTERS</span>
-          </div>
-          <h1 class="spatial-hero-title">
-            The Architecture of Thought: Synthetic Synapses & Quantum Coherence
-          </h1>
-          <div class="author-spatial-row">
-            <div class="author-avatar-chip">AV</div>
-            <div class="author-details">
-              <span class="author-name">Dr. Alistair Vance & Dr. Elena Rostova</span>
-              <span class="author-title">Planetary Institute of Quantum Neuro-Architecture</span>
-            </div>
-            <div class="pub-date">Published Sep 2026</div>
-          </div>
-        </header>
-
-        <!-- Chapter 1: Quantum Dawn -->
-        <section class="reading-chapter-section" id="chapter-0" data-index="0" data-model="quantum" data-light="dawn">
-          <div class="chapter-watermark">CHAPTER 01</div>
-          <h2 class="chapter-heading">I. The Quantum Awakening: Coherence Beyond Absolute Zero</h2>
-          <p class="focus-paragraph">
-            For nearly a century, quantum computing was imprisoned inside helium dilution refrigerators—massive cryostats hummed at millikelvin temperatures, isolated from the chaotic warmth of the biological world. Today, topological room-temperature coherence has shattered those cryogenic walls.
-          </p>
-          <div class="spatial-callout-quote">
-            <p>“Where classical computation struggles through sequential gates, quantum topological coherence navigates a unified multidimensional geometric manifold.”</p>
-            <cite>— Prof. Elena Rostova, Nobel Address in Topological Physics</cite>
-          </div>
-          <p class="focus-paragraph">
-            By braiding non-Abelian anyons along superconducting graphene nanoribbons, quantum states retain phase coherence amidst thermal noise. Information is no longer stored in fragile electronic charges, but in the immutable topological topology of quantum knots.
-          </p>
-          <div class="interactive-formula-box">
-            <span class="formula-label">TOPOLOGICAL HAMILTONIAN</span>
-            <code>H = ∑ J_ij (σ_i^x σ_j^x + σ_i^y σ_j^y) + ∆ ∑ (c_i^† c_j^† + h.c.)</code>
-            <span class="formula-hint">✨ Move pointer over 3D model in background to rotate quantum lattice</span>
-          </div>
-        </section>
-
-        <!-- Chapter 2: Neural Mesh -->
-        <section class="reading-chapter-section" id="chapter-1" data-index="1" data-model="neural" data-light="day">
-          <div class="chapter-watermark">CHAPTER 02</div>
-          <h2 class="chapter-heading">II. The Neural Mesh: Decentralized Planetary Synapses</h2>
-          <p class="focus-paragraph">
-            Centralized data centers consumed four percent of planetary energy by 2025. The transition to neuromorphic edge meshes distributes cognitive reasoning across millions of microscopic event-driven spiking nodes, mimicking the cellular density of the human neocortex.
-          </p>
-          <div class="interactive-spec-grid">
-            <div class="spec-card">
-              <span class="spec-val">0.08 ms</span>
-              <span class="spec-name">Synaptic Latency</span>
-            </div>
-            <div class="spec-card">
-              <span class="spec-val">100,000×</span>
-              <span class="spec-name">Energy Efficiency</span>
-            </div>
-            <div class="spec-card">
-              <span class="spec-val">10¹⁸ ops</span>
-              <span class="spec-name">Distributed Capacity</span>
-            </div>
-          </div>
-          <p class="focus-paragraph">
-            Rather than transmitting raw video and sensory streams across planetary fiber cables, edge nodes synthesize abstract high-level concepts and synchronize cognitive priors via cryptographic zero-knowledge state updates.
-          </p>
-        </section>
-
-        <!-- Chapter 3: Orbital Foundries -->
-        <section class="reading-chapter-section" id="chapter-2" data-index="2" data-model="orbital" data-light="twilight">
-          <div class="chapter-watermark">CHAPTER 03</div>
-          <h2 class="chapter-heading">III. Orbital Foundries: Metallurgy in Zero Gravity</h2>
-          <p class="focus-paragraph">
-            Terrestrial manufacturing is fundamentally burdened by gravity. Convection currents, thermal buoyancy, and sediment sedimentation introduce microscopic fractures and grain dislocations into molten silicon and metallic alloys.
-          </p>
-          <div class="spatial-callout-quote">
-            <p>“In low-Earth orbit, containerless electromagnetic levitation produces monocrystalline metamaterials of mathematical perfection.”</p>
-          </div>
-          <p class="focus-paragraph">
-            From ZBLAN fluorozirconate optical lightguides that transmit light 100 times clearer than quartz glass, to self-assembling titanium-carbide superalloys, orbital foundries now supply the physical backbone for interplanetary computing networks.
-          </p>
-        </section>
-
-        <!-- Chapter 4: Living Bio-Silicon -->
-        <section class="reading-chapter-section" id="chapter-3" data-index="3" data-model="dna" data-light="midnight">
-          <div class="chapter-watermark">CHAPTER 04</div>
-          <h2 class="chapter-heading">IV. Living Bio-Silicon: DNA as Digital Immortality</h2>
-          <p class="focus-paragraph">
-            All the digital data ever produced by human civilization—from ancient hieroglyphs to planetary climate simulations—can fit into a single spoonful of synthetic DNA weighing less than five grams.
-          </p>
-          <p class="focus-paragraph">
-            Nature mastered petabyte-density storage four billion years ago. Synthetic quaternary encoding (A, C, G, T mapped to dual binary qubits) guarantees biochemical readability for tens of thousands of years without gate leakage or magnetic degradation.
-          </p>
-        </section>
-
-        <!-- Chapter 5: The Post-Digital Era -->
-        <section class="reading-chapter-section" id="chapter-4" data-index="4" data-model="postdigital" data-light="aurora">
-          <div class="chapter-watermark">CHAPTER 05</div>
-          <h2 class="chapter-heading">V. The Synthesis: Fifty Thousand Years Forward</h2>
-          <p class="focus-paragraph">
-            We have crossed the threshold from digital tools into spatial symbiosis. The device has dissolved; the interface has merged with physical light, quantum topology, and biological consciousness.
-          </p>
-          <p class="focus-paragraph">
-            Knowledge is no longer confined to static pages or flat glass rectangles. It is volumetric, participatory, and eternally alive in three-dimensional space.
-          </p>
-        </section>
-
-        <!-- Article Finish Footer -->
-        <footer class="slab-finish-footer">
-          <div class="finish-badge">✨ ARTICLE COMPLETED</div>
-          <p class="finish-note">You have traversed all 5 spatial chapters of this volumetric dissertation.</p>
-          <div class="finish-actions">
-            <a href="../index.html" class="finish-btn primary">← Return to 3D Card Grid</a>
-            <button id="btn-re-read" class="finish-btn secondary">↻ Read Again from Start</button>
-          </div>
-        </footer>
-
-      </article>
-    </div>
-
-    <!-- MODE 2: 3D Holographic Journal / Interactive 3D Book Mode Overlay -->
-    <div id="journal-flip-container" class="journal-flip-container hidden">
-      <div class="journal-nav-bar">
-        <button id="btn-prev-page" class="journal-flip-btn" title="Previous 3D Page">
-          <span>&lt; Previous Page</span>
-        </button>
-        <span class="journal-page-counter" id="journal-page-counter">Page 1 of 6</span>
-        <button id="btn-next-page" class="journal-flip-btn" title="Next 3D Page">
-          <span>Next Page &gt;</span>
-        </button>
+    <div class="thumb-progress-group">
+      <span class="progress-chapter-badge" id="hud-chapter-badge">CH 01 / 05</span>
+      <div class="progress-mini-track">
+        <div class="progress-mini-fill" id="hud-progress-fill" style="width: 20%;"></div>
       </div>
-      <div class="journal-hint-pill">
-        <span>👆 Click Prev/Next or drag to flip physical 3D curved pages with real-time shadow depth</span>
-      </div>
+      <span class="progress-detail" id="hud-page-detail">Page 1 of 5</span>
     </div>
 
-  </main>
-
-  <!-- Mobile-First Thumb Controls Overlay (Bottom Zone) -->
-  <div id="thumb-controls-bar">
-    <button class="thumb-btn" id="btn-thumb-prev-chapter" title="Previous Chapter">
-      <span>⏮️ Prev</span>
+    <button class="thumb-nav-btn" id="btn-nav-next" title="Next Page or Chapter">
+      <span class="btn-text">NEXT</span>
+      <span class="btn-arrow">&gt;</span>
     </button>
-    <button class="thumb-btn main-action" id="btn-thumb-toggle-mode" title="Cycle Reading Experience Modes">
-      <span id="thumb-mode-label">Mode: Narrative</span>
-    </button>
-    <button class="thumb-btn" id="btn-thumb-next-chapter" title="Next Chapter">
-      <span>Next ⏭️</span>
-    </button>
-  </div>
+  </footer>
 
   <script type="module" src="./app.js"></script>
 </body>
