@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-PROJECT_DIR="/home/mdkamruzzamanirak_gmail_com/3D-Game-Design-Studio/projects/cyberpunk_hover_racer"
+PROJECT_DIR="/home/azureuser/3D-Game-Design-Studio/projects/cyberpunk_hover_racer"
 PORT=5175
 LOG_DIR="$PROJECT_DIR/logs"
 mkdir -p "$LOG_DIR"

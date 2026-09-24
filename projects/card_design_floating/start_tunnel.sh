@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-PROJECT_DIR="/home/mdkamruzzamanirak_gmail_com/3D-Game-Design-Studio/projects/card_design_floating"
+PROJECT_DIR="/home/azureuser/3D-Game-Design-Studio/projects/card_design_floating"
 PORT=5176
 LOG_DIR="$PROJECT_DIR/logs"
 mkdir -p "$LOG_DIR"

@@ -40,3 +40,4 @@
 {"level":"info","run_id":"6632a51d-b15c-46d1-b062-1f0a57592aaa","component":"TCP Connectivity","target":"region2.v2.argotunnel.com","status":"pass","details":"HTTP/2 connection successful","time":"2026-09-20T16:25:29Z","message":"precheck"}
 {"level":"info","run_id":"6632a51d-b15c-46d1-b062-1f0a57592aaa","component":"Cloudflare API","target":"api.cloudflare.com:443","status":"pass","details":"API is reachable","time":"2026-09-20T16:25:29Z","message":"precheck"}
 {"level":"info","run_id":"6632a51d-b15c-46d1-b062-1f0a57592aaa","hard_fail":false,"suggested_protocol":"quic","time":"2026-09-20T16:25:29Z","message":"precheck complete"}
+{"level":"warn","time":"2026-09-21T16:25:23Z","message":"Your version 2026.8.2 is outdated. We recommend upgrading it to 2026.9.1"}

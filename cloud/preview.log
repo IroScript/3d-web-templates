@@ -1,1 +1,2 @@
-127.0.0.1 - - [18/Sep/2026 11:54:55] "HEAD / HTTP/1.1" 200 -
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://172.16.0.4:5173/
