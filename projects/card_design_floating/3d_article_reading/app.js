@@ -30,7 +30,7 @@ import { ARTICLE_DATA } from './article-data.js';
 const state = {
   currentSection: 0,
   currentWorld: 'library', // 'library' | 'tunnel' | 'constellation'
-  currentMode: 'spatial',   // 'spatial' | 'focus' | 'hybrid' | 'explore' | 'fallback'
+  currentMode: 'read',   // 'spatial' | 'focus' | 'hybrid' | 'explore' | 'fallback'
   motion: 'full',           // 'full' | 'reduced' | 'off'
   audioEnabled: true,
   debug: false,
@@ -962,35 +962,48 @@ function navigateToSection(index, updateHash = true) {
   }
 
   updateSectionMetadata(index, updateHash);
+  updateBottomNavUI(index);
   updateScrollerUI(index);
 }
 
 function setReadingMode(mode) {
+  if (mode !== 'read' && mode !== 'explore') mode = 'read';
   state.currentMode = mode;
   document.body.className = `mode-${mode} world-${state.currentWorld} motion-${state.motion}`;
 
-  modeButtons.forEach(btn => {
+  const modeBtns = document.querySelectorAll('.spatial-mode-btn');
+  modeBtns.forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mode === mode);
   });
 
   if (mode === 'explore') {
     controls.enabled = true;
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.8;
-    hintMessage.textContent = 'Explore Mode: Click or drag to orbit objects • Scroll to zoom • Click items to inspect';
-  } else if (mode === 'focus') {
-    controls.enabled = false;
-    controls.autoRotate = false;
-    hintMessage.textContent = 'Focus Mode: Ambient distraction dimmed • Crystal editorial reading';
-  } else if (mode === 'hybrid') {
+    controls.autoRotateSpeed = 0.6;
+    if (focusSurface) focusSurface.classList.remove('open');
+    const fab = document.getElementById('btn-floating-article-fab');
+    if (fab) {
+      fab.classList.remove('active');
+      const icon = document.getElementById('fab-reader-icon');
+      const label = document.getElementById('fab-reader-label');
+      if (icon) icon.textContent = '📖';
+      if (label) label.textContent = 'পড়ুন';
+    }
+    if (hintMessage) hintMessage.textContent = 'ঘুরে দেখুন: সম্পূর্ণ ৩ডি ভিউ ও ফ্রি ক্যামেরা • ড্র্যাগ বা জুম করুন';
+  } else {
+    // Read Mode
     controls.enabled = true;
     controls.autoRotate = false;
-    hintMessage.textContent = 'Hybrid Mode: 60% Reading panel + 40% Live 3D spatial view';
-  } else if (mode === 'spatial') {
-    controls.enabled = true;
-    controls.autoRotate = false;
-    hintMessage.textContent = '3D Read Mode: Scroll or swipe to travel through article space';
-    reCenterCamera();
+    if (focusSurface) focusSurface.classList.add('open');
+    const fab = document.getElementById('btn-floating-article-fab');
+    if (fab) {
+      fab.classList.add('active');
+      const icon = document.getElementById('fab-reader-icon');
+      const label = document.getElementById('fab-reader-label');
+      if (icon) icon.textContent = '✕';
+      if (label) label.textContent = 'বন্ধ';
+    }
+    if (hintMessage) hintMessage.textContent = 'পড়ার মোড: ৩ডি ব্যাকগ্রাউন্ডের সাথে আর্টিকেল পাঠ • পরের/আগের চাপুন';
   }
 
   playClickSound();
@@ -1123,7 +1136,7 @@ function loadState() {
 // ─── Event Listeners & Controls ──────────────────────────────────
 
 // Mode button switching
-modeButtons.forEach(btn => {
+document.querySelectorAll('.spatial-mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     setReadingMode(btn.dataset.mode);
   });
@@ -1584,154 +1597,249 @@ function animate(currentTime) {
   }
 }
 
-// ─── Side Floating Round Ball (Orb Widget) Controller ──────────
-function initSideOrbWidget() {
-  const widget = document.getElementById('side-floating-orb-widget');
-  const orbBall = document.getElementById('floating-round-ball');
-  const closeBtn = document.getElementById('orb-card-close');
-  const tabBtns = document.querySelectorAll('.orb-tab-btn');
-  const panels = {
-    essential: document.getElementById('orb-panel-essential'),
-    context: document.getElementById('orb-panel-context'),
-    research: document.getElementById('orb-panel-research'),
-  };
 
-  if (!widget || !orbBall) return;
+// ─── Consolidated Quick Menu Controller ──────────────────────────
+function initQuickMenu() {
+  const menuModal = document.getElementById('spatial-quick-menu');
+  const menuBackdrop = document.getElementById('spatial-menu-backdrop');
+  const btnToggle = document.getElementById('btn-toggle-menu');
+  const btnClose = document.getElementById('btn-close-menu');
 
-  function toggleOrbCard(e) {
-    if (e) e.stopPropagation();
-    widget.classList.toggle('expanded');
-    playTone(widget.classList.contains('expanded') ? 580 : 380, 'sine', 0.16, 0.12);
+  if (!menuModal || !btnToggle) return;
+
+  function toggleMenu(forceOpen) {
+    const isOpen = forceOpen !== undefined ? forceOpen : menuModal.style.display !== 'none';
+    const shouldOpen = !isOpen;
+    menuModal.style.display = shouldOpen ? 'flex' : 'none';
+    if (menuBackdrop) menuBackdrop.style.display = shouldOpen ? 'block' : 'none';
+    btnToggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+    playTone(shouldOpen ? 520 : 340, 'sine', 0.12, 0.08);
   }
 
-  orbBall.addEventListener('click', toggleOrbCard);
-  orbBall.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      toggleOrbCard(e);
-    }
+  btnToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleMenu();
   });
 
-  if (closeBtn) {
-    closeBtn.addEventListener('click', (e) => {
+  if (btnClose) {
+    btnClose.addEventListener('click', (e) => {
       e.stopPropagation();
-      widget.classList.remove('expanded');
-      playTone(340, 'sine', 0.14, 0.08);
+      toggleMenu(false);
     });
   }
 
-  // Layer Tab switching
-  tabBtns.forEach(btn => {
+  if (menuBackdrop) {
+    menuBackdrop.addEventListener('click', () => toggleMenu(false));
+  }
+
+  // World buttons in menu
+  const worldBtns = document.querySelectorAll('.menu-world-btn');
+  worldBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const targetLayer = btn.getAttribute('data-orb-layer');
-      tabBtns.forEach(b => b.classList.toggle('active', b === btn));
-      Object.keys(panels).forEach(k => {
-        if (panels[k]) panels[k].classList.toggle('active', k === targetLayer);
+      const targetWorld = btn.getAttribute('data-world');
+      setWorld(targetWorld);
+      worldBtns.forEach(b => b.classList.toggle('active', b === btn));
+      toggleMenu(false);
+    });
+  });
+
+  // Audio Toggle in menu
+  const btnAudio = document.getElementById('btn-menu-audio');
+  if (btnAudio) {
+    btnAudio.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleAudio();
+      updateAudioMenuUI();
+    });
+  }
+
+  // Motion Toggle in menu
+  const btnMotion = document.getElementById('btn-menu-motion');
+  if (btnMotion) {
+    btnMotion.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMotion();
+      const txt = document.getElementById('menu-motion-text');
+      if (txt) txt.textContent = `মোশন: ${state.motion === 'full' ? 'ফুল' : state.motion === 'reduced' ? 'সংকুচিত' : 'বন্ধ'}`;
+    });
+  }
+
+  // Re-Center Camera in menu
+  const btnRecenter = document.getElementById('btn-menu-recenter');
+  if (btnRecenter) {
+    btnRecenter.addEventListener('click', (e) => {
+      e.stopPropagation();
+      reCenterCamera();
+      toggleMenu(false);
+    });
+  }
+
+  // 2D Fallback view in menu
+  const btn2D = document.getElementById('btn-menu-fallback-2d');
+  if (btn2D) {
+    btn2D.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMenu(false);
+      openFallback2D();
+    });
+  }
+
+  // Outline Drawer in menu
+  const btnOutline = document.getElementById('btn-menu-outline');
+  if (btnOutline) {
+    btnOutline.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMenu(false);
+      if (typeof toggleOutlineDrawer === 'function') toggleOutlineDrawer(true);
+      else {
+        const drawer = document.getElementById('spatial-outline-drawer');
+        const bdrop = document.getElementById('outline-backdrop');
+        if (drawer) drawer.classList.add('open');
+        if (bdrop) bdrop.classList.add('open');
+      }
+    });
+  }
+
+  // Help in menu
+  const btnHelp = document.getElementById('btn-menu-help');
+  if (btnHelp) {
+    btnHelp.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMenu(false);
+      openHelpModal();
+    });
+  }
+
+  // Zoom buttons in menu
+  const zIn = document.getElementById('btn-menu-zoom-in');
+  const zOut = document.getElementById('btn-menu-zoom-out');
+  const zReset = document.getElementById('btn-menu-zoom-reset');
+
+  if (zIn) {
+    zIn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      zoomCameraBy(0.78);
+    });
+  }
+  if (zOut) {
+    zOut.addEventListener('click', (e) => {
+      e.stopPropagation();
+      zoomCameraBy(1.3);
+    });
+  }
+  if (zReset) {
+    zReset.addEventListener('click', (e) => {
+      e.stopPropagation();
+      reCenterCamera();
+    });
+  }
+
+  window.toggleQuickMenu = toggleMenu;
+}
+
+function updateAudioMenuUI() {
+  const icon = document.getElementById('menu-audio-icon');
+  const text = document.getElementById('menu-audio-text');
+  if (icon) icon.textContent = state.audio ? '🔊' : '🔇';
+  if (text) text.textContent = `সাউন্ড: ${state.audio ? 'চালু' : 'বন্ধ'}`;
+}
+
+// ─── Help & Shortcuts Modal Controller ───────────────────────────
+function initHelpModal() {
+  const helpModal = document.getElementById('spatial-help-modal');
+  const helpBackdrop = document.getElementById('spatial-help-backdrop');
+  const btnClose = document.getElementById('btn-close-help');
+
+  function openHelp(show = true) {
+    if (helpModal) helpModal.style.display = show ? 'flex' : 'none';
+    if (helpBackdrop) helpBackdrop.style.display = show ? 'block' : 'none';
+    playTone(show ? 480 : 320, 'sine', 0.1, 0.08);
+  }
+
+  if (btnClose) btnClose.addEventListener('click', () => openHelp(false));
+  if (helpBackdrop) helpBackdrop.addEventListener('click', () => openHelp(false));
+
+  window.openHelpModal = () => openHelp(true);
+  window.closeHelpModal = () => openHelp(false);
+}
+
+// ─── Bottom Navigation Bar & Progress Dots Controller ───────────
+function initBottomNavDots() {
+  const dotsContainer = document.getElementById('thumb-progress-dots');
+  const prevBtn = document.getElementById('btn-nav-prev');
+  const nextBtn = document.getElementById('btn-nav-next');
+
+  if (dotsContainer) {
+    dotsContainer.innerHTML = '';
+    ARTICLE_DATA.sections.forEach((sec, idx) => {
+      const dot = document.createElement('button');
+      dot.className = `progress-dot ${idx === state.currentSection ? 'active' : ''}`;
+      dot.setAttribute('role', 'tab');
+      dot.setAttribute('aria-selected', idx === state.currentSection ? 'true' : 'false');
+      dot.setAttribute('aria-label', `Jump to Section ${idx + 1}: ${sec.title}`);
+      dot.title = `সেকশন ${idx + 1}: ${sec.title}`;
+      dot.addEventListener('click', (e) => {
+        e.stopPropagation();
+        navigateToSection(idx);
       });
-      playTone(targetLayer === 'essential' ? 440 : targetLayer === 'context' ? 554 : 659, 'sine', 0.12, 0.1);
-    });
-  });
-}
-
-// ─── Spatial Camera Zoom Controls (+, −, ⟲) ───────────────────
-function initSpatialZoomControls() {
-  const btnZoomIn = document.getElementById('btn-zoom-in');
-  const btnZoomOut = document.getElementById('btn-zoom-out');
-  const btnZoomReset = document.getElementById('btn-zoom-reset');
-
-  function zoomCameraBy(factor) {
-    isTransitioning = false;
-    const offset = new THREE.Vector3().subVectors(camera.position, controls.target);
-    offset.multiplyScalar(factor);
-    const newDist = offset.length();
-    if (newDist >= controls.minDistance && newDist <= controls.maxDistance) {
-      camera.position.addVectors(controls.target, offset);
-      targetCamPos.copy(camera.position);
-      targetCamLook.copy(controls.target);
-      controls.update();
-      playClickSound();
-    }
-  }
-
-  if (btnZoomIn) {
-    btnZoomIn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      zoomCameraBy(0.75); // Zoom In
+      dotsContainer.appendChild(dot);
     });
   }
 
-  if (btnZoomOut) {
-    btnZoomOut.addEventListener('click', (e) => {
+  if (prevBtn) {
+    prevBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      e.preventDefault();
-      zoomCameraBy(1.35); // Zoom Out
+      if (state.currentSection > 0) {
+        navigateToSection(state.currentSection - 1);
+      }
     });
   }
 
-  if (btnZoomReset) {
-    btnZoomReset.addEventListener('click', (e) => {
+  if (nextBtn) {
+    nextBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      e.preventDefault();
-      const wp = getCameraWaypoint(state.currentSection);
-      targetCamPos.copy(wp.position);
-      targetCamLook.copy(wp.target);
-      isTransitioning = true;
-      playClickSound();
+      if (state.currentSection < ARTICLE_DATA.sections.length - 1) {
+        navigateToSection(state.currentSection + 1);
+      }
     });
   }
 }
 
-// ─── Floating Article Reader FAB Controller ────────────────────────
-function initFloatingArticleFab() {
-  const floatingFab = document.getElementById('btn-floating-article-fab');
-  const closeSurfaceBtn = document.getElementById('btn-close-focus-surface');
-  const surfaceBackdrop = document.getElementById('focus-surface-backdrop');
-  const fabIcon = document.getElementById('fab-reader-icon');
-  const fabLabel = document.getElementById('fab-reader-label');
-
-  if (!focusSurface) return;
-
-  function toggleFocusSurface(forceOpen) {
-    const shouldOpen = forceOpen !== undefined ? forceOpen : !focusSurface.classList.contains('open');
-    focusSurface.classList.toggle('open', shouldOpen);
-    if (surfaceBackdrop) surfaceBackdrop.classList.toggle('open', shouldOpen);
-    if (floatingFab) {
-      floatingFab.classList.toggle('active', shouldOpen);
-      if (fabIcon) fabIcon.textContent = shouldOpen ? '✕' : '📖';
-      if (fabLabel) fabLabel.textContent = shouldOpen ? 'Close Text' : 'Read Article';
-    }
-    playTone(shouldOpen ? 620 : 380, 'sine', 0.12, 0.1);
-  }
-
-  if (floatingFab) {
-    floatingFab.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleFocusSurface();
-    });
-  }
-
-  if (closeSurfaceBtn) {
-    closeSurfaceBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleFocusSurface(false);
-    });
-  }
-
-  if (surfaceBackdrop) {
-    surfaceBackdrop.addEventListener('click', () => {
-      toggleFocusSurface(false);
-    });
-  }
-
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && focusSurface.classList.contains('open')) {
-      toggleFocusSurface(false);
-    }
+function updateBottomNavUI(index) {
+  const dots = document.querySelectorAll('.progress-dot');
+  dots.forEach((dot, idx) => {
+    dot.classList.toggle('active', idx === index);
+    dot.setAttribute('aria-selected', idx === index ? 'true' : 'false');
   });
 
-  window.toggleFocusSurface = toggleFocusSurface;
+  const prevBtn = document.getElementById('btn-nav-prev');
+  const nextBtn = document.getElementById('btn-nav-next');
+  if (prevBtn) prevBtn.disabled = index === 0;
+  if (nextBtn) nextBtn.disabled = index === ARTICLE_DATA.sections.length - 1;
+
+  const chapterBadge = document.getElementById('hud-chapter-badge');
+  const sectionLabel = document.getElementById('hud-section-label');
+  const pageDetail = document.getElementById('hud-page-detail');
+  const currentSec = ARTICLE_DATA.sections[index];
+
+  if (chapterBadge) chapterBadge.textContent = `সেকশন 0${index + 1} / 0${ARTICLE_DATA.sections.length}`;
+  if (sectionLabel && currentSec) sectionLabel.textContent = `সেকশন 0${index + 1} / 0${ARTICLE_DATA.sections.length} · ${currentSec.title.split(':')[0]}`;
+  if (pageDetail && currentSec) pageDetail.textContent = currentSec.title;
+}
+
+function zoomCameraBy(factor) {
+  isTransitioning = false;
+  const offset = new THREE.Vector3().subVectors(camera.position, controls.target);
+  offset.multiplyScalar(factor);
+  const newDist = offset.length();
+  if (newDist >= controls.minDistance && newDist <= controls.maxDistance) {
+    camera.position.addVectors(controls.target, offset);
+    targetCamPos.copy(camera.position);
+    targetCamLook.copy(controls.target);
+    controls.update();
+    playClickSound();
+  }
 }
 
 // ─── Initializer ─────────────────────────────────────────────────
@@ -1758,16 +1866,12 @@ function init() {
   slideProgress = state.currentSection;
   targetSlideProgress = state.currentSection;
 
-  // Initialize Slideshow & Scroller Controls
-  initSlideshowControls();
-  updateScrollerUI(slideProgress);
-
-  // Initialize Side Floating Orb Widget
-  initSideOrbWidget();
-  // Initialize Spatial Zoom Controls (+, −, ⟲)
-  initSpatialZoomControls();
-  // Initialize Floating Article FAB Controller
+  // Initialize Simplified UI Controls (Commit 1)
+  initQuickMenu();
+  initHelpModal();
+  initBottomNavDots();
   initFloatingArticleFab();
+  updateBottomNavUI(state.currentSection);
 
   animate(performance.now());
 }
