@@ -2029,8 +2029,9 @@ function zoomCameraBy(factor) {
 
 // ─── Camera View Offset on Desktop (Prevent 3D Object Occlusion) ──
 function updateCameraViewOffset() {
-  if (window.innerWidth >= 901 && focusSurface && focusSurface.classList.contains('open')) {
-    const panelWidth = Math.min(Math.max(window.innerWidth * 0.32, 360), 460);
+  const isLandscapePhone = window.innerWidth > window.innerHeight && window.innerHeight <= 550;
+  if ((window.innerWidth >= 901 || isLandscapePhone) && focusSurface && focusSurface.classList.contains('open')) {
+    const panelWidth = isLandscapePhone ? Math.min(window.innerWidth * 0.38, 360) : Math.min(Math.max(window.innerWidth * 0.32, 360), 460);
     // Shift camera frustum so the primary 3D object is centered in the remaining visible space
     camera.setViewOffset(window.innerWidth, window.innerHeight, -panelWidth / 2, 0, window.innerWidth, window.innerHeight);
   } else {

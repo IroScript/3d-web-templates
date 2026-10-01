@@ -571,9 +571,9 @@ html, body {
   }
 }
 
-/* ─── Mobile 3-Tier Bottom Sheet (Peek ~20vh, Half ~50vh, Full ~88vh) ─── */
-/* Never covers bottom previous/next buttons: docked above bottom bar */
-@media (max-width: 900px) {
+/* ─── Mobile 3-Tier Bottom Sheet (Peek ~22dvh, Half ~52dvh, Full ~86dvh) ─── */
+/* In Portrait: docked above bottom bar so it never covers previous/next buttons */
+@media (max-width: 900px) and (orientation: portrait) {
   .spatial-focus-surface {
     left: 10px;
     right: 10px;
@@ -583,12 +583,6 @@ html, body {
     border-radius: 20px;
     border: 1px solid rgba(0, 243, 255, 0.4);
     top: auto;
-    width: 100vw;
-    max-width: 100vw;
-    border-radius: 24px 24px 0 0;
-    border-bottom: none;
-    border-left: none;
-    border-right: none;
     padding: 8px 18px env(safe-area-inset-bottom, 20px);
     transform: translateY(105%);
     opacity: 0;
@@ -612,8 +606,8 @@ html, body {
   }
 
   .spatial-focus-surface.tier-full {
-    height: 88dvh;
-    max-height: 88dvh;
+    height: 86dvh;
+    max-height: 86dvh;
   }
 
   .sheet-drag-handle {
@@ -632,6 +626,34 @@ html, body {
     border-radius: 3px;
     background: rgba(255, 255, 255, 0.4);
     box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
+  }
+}
+
+/* ─── Phone Landscape Mode (Short Height <= 550px): Dock Right Side ─── */
+@media (orientation: landscape) and (max-height: 550px) {
+  .spatial-focus-surface {
+    top: 54px !important;
+    bottom: 54px !important;
+    right: 12px !important;
+    left: auto !important;
+    width: clamp(280px, 38vw, 360px) !important;
+    max-width: 360px !important;
+    height: auto !important;
+    max-height: calc(100dvh - 108px) !important;
+    border-radius: 16px !important;
+    transform: translateX(calc(100% + 40px)) !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .spatial-focus-surface.open {
+    transform: translateX(0) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .sheet-drag-handle {
+    display: none !important;
   }
 }
 
