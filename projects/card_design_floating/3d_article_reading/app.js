@@ -963,6 +963,14 @@ function navigateToSection(index, updateHash = true) {
 
   updateSectionMetadata(index, updateHash);
   updateBottomNavUI(index);
+  // Auto-open panel on section change in Peek state if on mobile
+  if (state.currentMode === 'read' && focusSurface) {
+    focusSurface.classList.add('open');
+    if (window.innerWidth <= 900 && typeof applySheetTier === 'function') {
+      applySheetTier('tier-peek');
+    }
+    updateCameraViewOffset();
+  }
   updateScrollerUI(index);
 }
 
@@ -1842,6 +1850,99 @@ function zoomCameraBy(factor) {
   }
 }
 
+
+// ─── Camera View Offset on Desktop (Prevent 3D Object Occlusion) ──
+function updateCameraViewOffset() {
+  if (window.innerWidth >= 901 && focusSurface && focusSurface.classList.contains('open')) {
+    const panelWidth = Math.min(Math.max(window.innerWidth * 0.32, 360), 460);
+    // Shift camera frustum so the primary 3D object is centered in the remaining visible space
+    camera.setViewOffset(window.innerWidth, window.innerHeight, -panelWidth / 2, 0, window.innerWidth, window.innerHeight);
+  } else {
+    camera.clearViewOffset();
+  }
+}
+
+// ─── Mobile Bottom Sheet 3-Tier Snapping & Gestures ───────────────
+function initMobileBottomSheet() {
+  const tiers = ['tier-peek', 'tier-half', 'tier-full'];
+  let currentTier = 'tier-peek';
+  
+  // Try to load user preference from localStorage with try/catch
+  try {
+    const savedTier = localStorage.getItem('3d_reader_tier');
+    if (savedTier && tiers.includes(savedTier)) {
+      currentTier = savedTier;
+    }
+  } catch (err) {
+    console.warn('localStorage access failed:', err);
+  }
+
+  function applyTier(tier) {
+    if (!focusSurface) return;
+    tiers.forEach(t => focusSurface.classList.remove(t));
+    focusSurface.classList.add(tier);
+    currentTier = tier;
+    try {
+      localStorage.setItem('3d_reader_tier', tier);
+    } catch (e) {}
+  }
+
+  applyTier(currentTier);
+
+  const handle = document.getElementById('sheet-drag-handle');
+  if (handle) {
+    // Tap / Click handle cycles through tiers
+    handle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const nextIdx = (tiers.indexOf(currentTier) + 1) % tiers.length;
+      applyTier(tiers[nextIdx]);
+      playTone(460 + nextIdx * 80, 'sine', 0.1, 0.08);
+    });
+
+    // Touch swipe handling on handle
+    let startY = 0;
+    let initialY = 0;
+    handle.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        startY = e.touches[0].clientY;
+        initialY = startY;
+      }
+    }, { passive: true });
+
+    handle.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1) {
+        const deltaY = e.changedTouches[0].clientY - startY;
+        if (deltaY > 60) {
+          // Swiped down
+          if (currentTier === 'tier-full') applyTier('tier-half');
+          else if (currentTier === 'tier-half') applyTier('tier-peek');
+          else if (currentTier === 'tier-peek') toggleFocusSurface(false);
+        } else if (deltaY < -60) {
+          // Swiped up
+          if (currentTier === 'tier-peek') applyTier('tier-half');
+          else if (currentTier === 'tier-half') applyTier('tier-full');
+        }
+      }
+    }, { passive: true });
+  }
+
+  // Expandable Knowledge & Specs button
+  const btnExpandLayers = document.getElementById('btn-expand-layers');
+  const extendedContainer = document.getElementById('extended-layers-container');
+  if (btnExpandLayers && extendedContainer) {
+    btnExpandLayers.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isExpanded = extendedContainer.style.display !== 'none';
+      extendedContainer.style.display = isExpanded ? 'none' : 'flex';
+      btnExpandLayers.classList.toggle('expanded', !isExpanded);
+      btnExpandLayers.setAttribute('aria-expanded', !isExpanded ? 'true' : 'false');
+      playTone(!isExpanded ? 540 : 380, 'sine', 0.1, 0.08);
+    });
+  }
+
+  window.applySheetTier = applyTier;
+}
+
 // ─── Initializer ─────────────────────────────────────────────────
 function init() {
   loadState();
@@ -1871,9 +1972,15 @@ function init() {
   initHelpModal();
   initBottomNavDots();
   initFloatingArticleFab();
+  initMobileBottomSheet();
+  updateCameraViewOffset();
   updateBottomNavUI(state.currentSection);
 
   animate(performance.now());
 }
 
 init();
+
+window.addEventListener('resize', () => {
+  updateCameraViewOffset();
+});

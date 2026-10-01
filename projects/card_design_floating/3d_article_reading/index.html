@@ -198,7 +198,10 @@
   </div>
 
   <!-- Spatial Reading Focus Surface / In-World Crystal Typography Panel -->
-  <main id="spatial-focus-surface" class="spatial-focus-surface">
+  <main id="spatial-focus-surface" class="spatial-focus-surface" role="region" aria-label="3D Article Content Panel">
+    <div class="sheet-drag-handle" id="sheet-drag-handle" role="button" aria-label="Resize or collapse reading panel" tabindex="0">
+      <span class="drag-bar" aria-hidden="true"></span>
+    </div>
     <div class="focus-surface-container">
       <div class="surface-top-meta">
         <div class="surface-meta-left">
@@ -210,20 +213,9 @@
 
       <h2 class="surface-title" id="focus-title">PROLOGUE: THE EMERGENCE THRESHOLD</h2>
 
-      <!-- Multi-Layer Information Tab Strip (Section 24) -->
-      <div class="layer-tab-strip">
-        <button class="layer-tab active" data-layer="essential">
-          <span class="tab-dot"></span>
-          Layer 1: Essential
-        </button>
-        <button class="layer-tab" data-layer="context">
-          <span class="tab-dot"></span>
-          Layer 2: Context
-        </button>
-        <button class="layer-tab" data-layer="research">
-          <span class="tab-dot"></span>
-          Layer 3: Deep Research
-        </button>
+      <!-- Reading Layer Indicator (Essential by default) -->
+      <div class="layer-indicator-strip">
+        <span class="layer-badge active"><span class="tab-dot" aria-hidden="true"></span> মূল বয়ান (Essential)</span>
       </div>
 
       <!-- Essential Content (Paragraphs, Quotes, Interactive Embeds) -->
@@ -247,22 +239,30 @@
         </div>
       </div>
 
-      <!-- Context Layer Panel -->
-      <div class="layer-content-panel" id="panel-layer-context">
+      <!-- Expandable Deep Knowledge & Specs Toggle -->
+      <button class="btn-expand-layers" id="btn-expand-layers" aria-expanded="false" aria-controls="extended-layers-container">
+        <span class="btn-label-wrap">
+          <span class="btn-icon" aria-hidden="true">💡</span>
+          <span class="btn-text">আরও জানুন (ঐতিহাসিক প্রেক্ষাপট ও টেকনিক্যাল স্পেসিফিকেশন)</span>
+        </span>
+        <span class="expand-caret" aria-hidden="true">▾</span>
+      </button>
+
+      <!-- Extended Layers Container (Hidden by default, opens on toggle) -->
+      <div class="extended-layers-container" id="extended-layers-container" style="display: none;">
+        <!-- Context Layer Panel -->
         <div class="context-callout">
           <div class="callout-header">
-            <span class="callout-icon">💡</span>
+            <span class="callout-icon" aria-hidden="true">💡</span>
             <h4>HISTORICAL & NEUROLOGICAL CONTEXT</h4>
           </div>
           <p id="focus-context-text" class="callout-body"></p>
         </div>
-      </div>
 
-      <!-- Deep Research Layer Panel -->
-      <div class="layer-content-panel" id="panel-layer-research">
+        <!-- Deep Research Layer Panel -->
         <div class="research-callout">
           <div class="callout-header">
-            <span class="callout-icon">🔬</span>
+            <span class="callout-icon" aria-hidden="true">🔬</span>
             <h4>MATHEMATICAL & EMPIRICAL SPECIFICATIONS</h4>
           </div>
           <p id="focus-research-text" class="callout-body code-style"></p>
