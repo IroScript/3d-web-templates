@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=20261001_fab">
 
   <script type="importmap">
   {
@@ -164,8 +164,11 @@
   <main id="spatial-focus-surface" class="spatial-focus-surface">
     <div class="focus-surface-container">
       <div class="surface-top-meta">
-        <span class="surface-zone-tag" id="focus-zone-tag">Chamber of Inception</span>
-        <span class="surface-chapter-tag" id="focus-chapter-tag">SECTION 01 / 08</span>
+        <div class="surface-meta-left">
+          <span class="surface-zone-tag" id="focus-zone-tag">Chamber of Inception</span>
+          <span class="surface-chapter-tag" id="focus-chapter-tag">SECTION 01 / 08</span>
+        </div>
+        <button class="surface-close-btn" id="btn-close-focus-surface" title="Close Article Text" aria-label="Close">✕</button>
       </div>
 
       <h2 class="surface-title" id="focus-title">PROLOGUE: THE EMERGENCE THRESHOLD</h2>
@@ -230,6 +233,17 @@
       </div>
     </div>
   </main>
+
+  <!-- Backdrop for Focus Surface (Tap outside to close) -->
+  <div id="focus-surface-backdrop" class="focus-surface-backdrop"></div>
+
+  <!-- Floating Article Reading Action Button (FAB) -->
+  <button id="btn-floating-article-fab" class="floating-article-fab" aria-label="Toggle Article Text" title="Read Article Text">
+    <span class="fab-pulse-glow"></span>
+    <span class="fab-icon" id="fab-reader-icon">📖</span>
+    <span class="fab-label" id="fab-reader-label">Read Article</span>
+    <span class="fab-section-badge" id="fab-section-badge">01/08</span>
+  </button>
 
   <!-- Side Floating Round Ball (Orb Widget) -->
   <aside id="side-floating-orb-widget" class="side-floating-orb-widget" aria-label="Prologue Floating Round Ball">
@@ -430,6 +444,6 @@
   </div>
 
   <!-- Main Spatial Engine Script -->
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=20261001_fab"></script>
 </body>
 </html>

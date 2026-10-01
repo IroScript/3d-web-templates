@@ -518,29 +518,48 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   IN-WORLD SPATIAL FOCUS SURFACE (REMOVED FROM FRONT VIEW)
+   IN-WORLD SPATIAL FOCUS SURFACE (CONTROLLED VIA FLOATING BUTTON)
    ═══════════════════════════════════════════════════════════════════ */
 .spatial-focus-surface {
-  display: none !important; /* Removed from front to allow unobstructed 3D background view */
+  display: none;
   position: fixed;
-  bottom: 80px;
+  bottom: 84px;
   left: 50%;
-  transform: translateX(-50%);
-  width: 720px;
-  max-width: calc(100vw - 28px);
-  max-height: 48vh;
-  z-index: 40;
-  background: var(--bg-surface);
+  transform: translateX(-50%) translateY(20px);
+  width: 740px;
+  max-width: calc(100vw - 24px);
+  max-height: 52vh;
+  z-index: 120;
+  background: rgba(10, 16, 32, 0.95);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  border: 1px solid var(--hud-border);
-  border-radius: 24px;
-  padding: 22px 26px;
+  border: 1px solid rgba(0, 243, 255, 0.45);
+  border-radius: 22px;
+  padding: 20px 24px;
   overflow-y: auto;
-  box-shadow: 0 24px 60px -10px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 243, 255, 0.25);
   user-select: text;
   -webkit-user-select: text;
-  transition: all 0.4s var(--ease-spring);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Open / Active State triggered by Floating Button or Reading Modes */
+.spatial-focus-surface.open,
+body.mode-focus .spatial-focus-surface,
+body.mode-hybrid .spatial-focus-surface {
+  display: block !important;
+  animation: surfaceSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes surfaceSlideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(28px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
 }
 
 .focus-surface-container {
@@ -555,6 +574,13 @@ html, body {
   justify-content: space-between;
   font-family: var(--font-mono);
   font-size: 11px;
+  gap: 12px;
+}
+
+.surface-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .surface-zone-tag {
@@ -565,6 +591,137 @@ html, body {
 
 .surface-chapter-tag {
   color: var(--text-muted);
+}
+
+.surface-close-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.surface-close-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #ffffff;
+  transform: scale(1.12);
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.5);
+}
+
+.surface-close-btn:active {
+  transform: scale(0.92);
+}
+
+/* ─── Focus Surface Backdrop ─── */
+.focus-surface-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 16, 0.65);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 115;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.focus-surface-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* ─── Floating Article Reader Action Button (FAB) ─── */
+.floating-article-fab {
+  position: fixed;
+  right: 22px;
+  bottom: 84px;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: rgba(10, 16, 32, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1.5px solid rgba(0, 243, 255, 0.55);
+  border-radius: 30px;
+  color: #ffffff;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.7),
+    0 0 22px rgba(0, 243, 255, 0.4);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.floating-article-fab:hover {
+  background: rgba(0, 243, 255, 0.22);
+  border-color: #00f3ff;
+  box-shadow: 
+    0 12px 30px rgba(0, 0, 0, 0.75),
+    0 0 32px rgba(0, 243, 255, 0.7);
+  transform: translateY(-2px) scale(1.04);
+}
+
+.floating-article-fab:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.floating-article-fab.active {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.3), rgba(139, 92, 246, 0.4));
+  border-color: #00f3ff;
+  box-shadow: 0 0 28px rgba(0, 243, 255, 0.75);
+}
+
+.floating-article-fab .fab-icon {
+  font-size: 16px;
+  filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.8));
+}
+
+.floating-article-fab .fab-label {
+  letter-spacing: 0.5px;
+}
+
+.floating-article-fab .fab-section-badge {
+  background: rgba(0, 243, 255, 0.18);
+  border: 1px solid rgba(0, 243, 255, 0.5);
+  color: #00f3ff;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 12px;
+  letter-spacing: 0.5px;
+}
+
+.fab-pulse-glow {
+  position: absolute;
+  inset: -3px;
+  border-radius: 34px;
+  background: linear-gradient(90deg, #00f3ff, #8b5cf6);
+  opacity: 0.3;
+  filter: blur(6px);
+  z-index: -1;
+  animation: fabGlowPulse 3s ease-in-out infinite alternate;
+}
+
+@keyframes fabGlowPulse {
+  0% { opacity: 0.2; transform: scale(0.98); }
+  100% { opacity: 0.55; transform: scale(1.04); }
 }
 
 .surface-title {
@@ -1260,7 +1417,16 @@ body.mode-fallback .fallback-2d-view {
   .spatial-focus-surface {
     bottom: 74px;
     padding: 16px 18px;
-    max-height: 44vh;
+    max-height: 56vh;
+    width: calc(100vw - 20px);
+    border-radius: 18px;
+  }
+  
+  .floating-article-fab {
+    right: 14px;
+    bottom: 78px;
+    padding: 8px 14px;
+    font-size: 12px;
   }
   
   .surface-title {
@@ -1289,6 +1455,18 @@ body.mode-fallback .fallback-2d-view {
     padding: 4px 10px;
     width: 90%;
     text-align: center;
+  }
+  
+  .floating-article-fab {
+    right: 10px;
+    bottom: 72px;
+    padding: 7px 12px;
+    font-size: 11px;
+    gap: 6px;
+  }
+  
+  .floating-article-fab .fab-section-badge {
+    display: none;
   }
 }
 

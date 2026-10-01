@@ -924,6 +924,12 @@ function updateSectionMetadata(index, updateHash = true) {
   if (orbResearchText) orbResearchText.innerHTML = `<p>${section.layerDeepResearch || 'Formal empirical data visualized in 3D space.'}</p>`;
   if (orbBallText) orbBallText.textContent = index === 0 ? 'PROLOGUE' : `SLIDE ${index + 1}`;
 
+  // Update Floating Article FAB Badge
+  const fabSectionBadge = document.getElementById('fab-section-badge');
+  if (fabSectionBadge) {
+    fabSectionBadge.textContent = `0${index + 1} / 0${ARTICLE_DATA.sections.length}`;
+  }
+
   // Highlight Active Outline Item
   document.querySelectorAll('.outline-nav-item').forEach((item, idx) => {
     item.classList.toggle('active', idx === index);
@@ -1677,6 +1683,57 @@ function initSpatialZoomControls() {
   }
 }
 
+// ─── Floating Article Reader FAB Controller ────────────────────────
+function initFloatingArticleFab() {
+  const floatingFab = document.getElementById('btn-floating-article-fab');
+  const closeSurfaceBtn = document.getElementById('btn-close-focus-surface');
+  const surfaceBackdrop = document.getElementById('focus-surface-backdrop');
+  const fabIcon = document.getElementById('fab-reader-icon');
+  const fabLabel = document.getElementById('fab-reader-label');
+
+  if (!focusSurface) return;
+
+  function toggleFocusSurface(forceOpen) {
+    const shouldOpen = forceOpen !== undefined ? forceOpen : !focusSurface.classList.contains('open');
+    focusSurface.classList.toggle('open', shouldOpen);
+    if (surfaceBackdrop) surfaceBackdrop.classList.toggle('open', shouldOpen);
+    if (floatingFab) {
+      floatingFab.classList.toggle('active', shouldOpen);
+      if (fabIcon) fabIcon.textContent = shouldOpen ? '✕' : '📖';
+      if (fabLabel) fabLabel.textContent = shouldOpen ? 'Close Text' : 'Read Article';
+    }
+    playTone(shouldOpen ? 620 : 380, 'sine', 0.12, 0.1);
+  }
+
+  if (floatingFab) {
+    floatingFab.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleFocusSurface();
+    });
+  }
+
+  if (closeSurfaceBtn) {
+    closeSurfaceBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleFocusSurface(false);
+    });
+  }
+
+  if (surfaceBackdrop) {
+    surfaceBackdrop.addEventListener('click', () => {
+      toggleFocusSurface(false);
+    });
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && focusSurface.classList.contains('open')) {
+      toggleFocusSurface(false);
+    }
+  });
+
+  window.toggleFocusSurface = toggleFocusSurface;
+}
+
 // ─── Initializer ─────────────────────────────────────────────────
 function init() {
   loadState();
@@ -1709,6 +1766,8 @@ function init() {
   initSideOrbWidget();
   // Initialize Spatial Zoom Controls (+, −, ⟲)
   initSpatialZoomControls();
+  // Initialize Floating Article FAB Controller
+  initFloatingArticleFab();
 
   animate(performance.now());
 }
