@@ -24,7 +24,7 @@ for i in {1..10}; do
 done
 
 # 4. Start Cloudflare Tunnel with setsid
-rm -f "$LOG_DIR/cloudflared.log"
+: > "$LOG_DIR/cloudflared.log"
 setsid /usr/bin/cloudflared tunnel --url "http://127.0.0.1:$PORT" --logfile "$LOG_DIR/cloudflared.log" > /dev/null 2>&1 &
 
 # 5. Extract Cloudflare URL

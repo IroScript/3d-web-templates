@@ -32,11 +32,11 @@
   --accent-amber: #f59e0b;
   --accent-emerald: #10b981;
   
-  --font-ui: 'Plus Jakarta Sans', -apple-system, sans-serif;
-  --font-editorial: 'Newsreader', Georgia, serif;
-  --font-heading: 'Space Grotesk', sans-serif;
+  --font-ui: 'Plus Jakarta Sans', 'Hind Siliguri', 'Noto Sans Bengali', -apple-system, sans-serif;
+  --font-editorial: 'Newsreader', 'Hind Siliguri', 'Noto Sans Bengali', Georgia, serif;
+  --font-heading: 'Space Grotesk', 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
   --font-monument: 'Cinzel', serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', 'Hind Siliguri', 'Noto Sans Bengali', monospace;
   
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
