@@ -27,12 +27,18 @@ import { OrbitControls } from '../OrbitControls.js';
 import { ARTICLE_DATA } from './article-data.js';
 
 // ─── Application State ───────────────────────────────────────────
+
+// Check prefers-reduced-motion
+if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  state.motion = 'reduced';
+}
+
 const state = {
   currentSection: 0,
   currentWorld: 'library', // 'library' | 'tunnel' | 'constellation'
   currentMode: 'read',   // 'spatial' | 'focus' | 'hybrid' | 'explore' | 'fallback'
   motion: 'full',           // 'full' | 'reduced' | 'off'
-  audioEnabled: true,
+  audioEnabled: false,
   debug: false,
   activeLayer: 'essential', // 'essential' | 'context' | 'research'
   isTransitioning: false,
@@ -192,7 +198,8 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance'
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const isMobileDevice = window.innerWidth <= 900 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobileDevice ? 1.5 : 2.0));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.25;
@@ -210,10 +217,16 @@ controls.touches = {
   TWO: THREE.TOUCH.DOLLY_PAN
 };
 
-// Disengage camera lerp on manual user interaction
+// Disengage camera lerp immediately on any user touch or pointer interaction
 controls.addEventListener('start', () => {
   isTransitioning = false;
 });
+canvas.addEventListener('pointerdown', () => {
+  isTransitioning = false;
+}, { passive: true });
+canvas.addEventListener('touchstart', () => {
+  isTransitioning = false;
+}, { passive: true });
 controls.addEventListener('change', () => {
   if (!isTransitioning) {
     targetCamPos.copy(camera.position);
@@ -1693,7 +1706,8 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const isMobileDevice = window.innerWidth <= 900 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobileDevice ? 1.5 : 2.0));
 });
 
 // ─── Animation & Render Loop ─────────────────────────────────────
@@ -1701,7 +1715,22 @@ let lastTime = performance.now();
 let frameCount = 0;
 let fpsTimer = performance.now();
 
+
+// Pause render loop when tab is hidden to save GPU/CPU resources
+let isLoopRunning = true;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    isLoopRunning = false;
+  } else {
+    if (!isLoopRunning) {
+      isLoopRunning = true;
+      requestAnimationFrame(animate);
+    }
+  }
+});
+
 function animate(currentTime) {
+  if (!isLoopRunning) return;
   requestAnimationFrame(animate);
 
   // Throttled raycasting for 3D hover effects (pointer, highlight, label)
@@ -2090,6 +2119,120 @@ function initMobileBottomSheet() {
   window.applySheetTier = applyTier;
 }
 
+
+// ─── WebGL Detection & Loading & Onboarding Controller ───────────
+function isWebGLAvailable() {
+  try {
+    const testCanvas = document.createElement('canvas');
+    return !!(window.WebGLRenderingContext && (testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl') || testCanvas.getContext('webgl2')));
+  } catch (e) {
+    return false;
+  }
+}
+
+function initLoadingScreen() {
+  const loadingScreen = document.getElementById('spatial-loading-screen');
+  const barFill = document.getElementById('loading-bar-fill');
+  const statusText = document.getElementById('loading-status-text');
+
+  if (!loadingScreen) return;
+
+  let progress = 0;
+  const timer = setInterval(() => {
+    progress += Math.floor(Math.random() * 25) + 15;
+    if (progress >= 100) {
+      progress = 100;
+      clearInterval(timer);
+      if (barFill) barFill.style.width = '100%';
+      if (statusText) statusText.textContent = 'প্রস্তুত!';
+      setTimeout(() => {
+        loadingScreen.classList.add('fade-out');
+      }, 250);
+    } else {
+      if (barFill) barFill.style.width = `${progress}%`;
+      if (statusText) statusText.textContent = `স্পেস ডেটা লোড হচ্ছে (${progress}%)...`;
+    }
+  }, 50);
+}
+
+function initOnboardingHints() {
+  const toast = document.getElementById('spatial-onboarding-toast');
+  const msgEl = document.getElementById('onboarding-msg');
+  const btnStep = document.getElementById('btn-onboarding-step');
+  const btnSkip = document.getElementById('btn-onboarding-skip');
+
+  const hints = [
+    '১/৩: ৩ডি দৃশ্যটি ঘোরাতে এক আঙুল দিয়ে টেনে দেখো 🧭',
+    '২/৩: ৩ডি তথ্যের জন্য জ্বলজ্বলে বস্তুতে ট্যাপ করো 💡',
+    '৩/৩: পরের অধ্যায়ে যেতে নিচে "পরের" বাটন চাপো ▶'
+  ];
+  let currentStep = 0;
+
+  let seen = false;
+  try {
+    seen = localStorage.getItem('3d_reader_hints_dismissed') === 'true';
+  } catch (e) {}
+
+  if (seen || !toast) return;
+
+  function dismiss() {
+    if (!toast) return;
+    toast.classList.add('fade-out');
+    setTimeout(() => {
+      toast.style.display = 'none';
+      try {
+        localStorage.setItem('3d_reader_hints_dismissed', 'true');
+      } catch (e) {}
+    }, 300);
+  }
+
+  toast.style.display = 'flex';
+  if (msgEl) msgEl.textContent = hints[0];
+
+  if (btnStep) {
+    btnStep.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentStep++;
+      if (currentStep < hints.length) {
+        if (msgEl) msgEl.textContent = hints[currentStep];
+        if (currentStep === hints.length - 1) {
+          btnStep.textContent = 'বুঝেছি ✓';
+        }
+      } else {
+        dismiss();
+      }
+    });
+  }
+
+  if (btnSkip) {
+    btnSkip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dismiss();
+    });
+  }
+
+  // Dismiss on first canvas interaction
+  const dismissOnFirstAction = () => {
+    dismiss();
+    window.removeEventListener('pointerdown', dismissOnFirstAction);
+    window.removeEventListener('keydown', dismissOnFirstAction);
+  };
+  window.addEventListener('pointerdown', dismissOnFirstAction, { once: true });
+  window.addEventListener('keydown', dismissOnFirstAction, { once: true });
+}
+
+function initPermanentHelpButton() {
+  const btn = document.getElementById('btn-permanent-help');
+  if (btn) {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof openHelpModal === 'function') {
+        openHelpModal();
+      }
+    });
+  }
+}
+
 // ─── Initializer ─────────────────────────────────────────────────
 function init() {
   loadState();
@@ -2121,6 +2264,17 @@ function init() {
   initFloatingArticleFab();
   initMobileBottomSheet();
   ensureInteractiveHitMeshes();
+
+  // Check WebGL availability
+  if (!isWebGLAvailable()) {
+    const failBanner = document.getElementById('webgl-fail-banner');
+    if (failBanner) failBanner.style.display = 'flex';
+    setReadingMode('fallback');
+  }
+
+  initLoadingScreen();
+  initOnboardingHints();
+  initPermanentHelpButton();
   updateCameraViewOffset();
   updateBottomNavUI(state.currentSection);
 
