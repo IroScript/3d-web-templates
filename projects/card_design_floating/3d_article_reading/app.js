@@ -88,13 +88,23 @@ const surfaceInteractiveBadge = document.getElementById('surface-interactive-bad
 const surfaceInteractiveText = document.getElementById('surface-interactive-text');
 const btnInspect3d = document.getElementById('btn-inspect-3d');
 
-// Thumb Bar
+// Slideshow Navigation & Status Bar
 const btnNavPrev = document.getElementById('btn-nav-prev');
 const btnNavNext = document.getElementById('btn-nav-next');
 const hudChapterBadge = document.getElementById('hud-chapter-badge');
 const hudProgressFill = document.getElementById('hud-progress-fill');
 const hudPageDetail = document.getElementById('hud-page-detail');
 const btnOpenOutlineThumb = document.getElementById('btn-open-outline-thumb');
+
+// Vertical Slideshow Scroller
+const slideshowScroller = document.getElementById('slideshow-scroller');
+const scrollerBtnUp = document.getElementById('scroller-btn-up');
+const scrollerBtnDown = document.getElementById('scroller-btn-down');
+const scrollerTrack = document.getElementById('scroller-track');
+const scrollerFill = document.getElementById('scroller-fill');
+const scrollerThumb = document.getElementById('scroller-thumb');
+const scrollerBadge = document.getElementById('scroller-badge');
+const scrollerTicks = document.getElementById('scroller-ticks');
 
 // Inspect Modal
 const inspectModal = document.getElementById('spatial-inspect-modal');
@@ -190,11 +200,22 @@ renderer.toneMappingExposure = 1.25;
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
-controls.rotateSpeed = 0.6;
-controls.zoomSpeed = 0.8;
-controls.panSpeed = 0.5;
-controls.maxDistance = 60;
-controls.minDistance = 3;
+controls.rotateSpeed = 0.7;
+controls.zoomSpeed = 1.3;
+controls.panSpeed = 0.6;
+controls.maxDistance = 220; // Allow deep cosmic zoom-out
+controls.minDistance = 1.2;
+
+// Disengage camera lerp on manual user interaction
+controls.addEventListener('start', () => {
+  isTransitioning = false;
+});
+controls.addEventListener('change', () => {
+  if (!isTransitioning) {
+    targetCamPos.copy(camera.position);
+    targetCamLook.copy(controls.target);
+  }
+});
 
 // Lighting Rig
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
@@ -286,15 +307,15 @@ function createSectionCanvasTexture(section) {
   for (let n = 0; n < words.length; n++) {
     const testLine = line + words[n] + ' ';
     const metrics = ctx.measureText(testLine);
-    if (metrics.width > 900 && n > 0) {
-      ctx.fillText(line, 60, y);
+    if (metrics.width > 800 && n > 0) {
+      ctx.fillText(line, 120, y);
       line = words[n] + ' ';
       y += 56;
     } else {
       line = testLine;
     }
   }
-  ctx.fillText(line, 60, y);
+  ctx.fillText(line, 120, y);
 
   // Decorative Divider
   y += 30;
@@ -315,8 +336,8 @@ function createSectionCanvasTexture(section) {
   for (let n = 0; n < bodyWords.length; n++) {
     const testLine = line + bodyWords[n] + ' ';
     const metrics = ctx.measureText(testLine);
-    if (metrics.width > 890 && n > 0) {
-      ctx.fillText(line, 60, y);
+    if (metrics.width > 800 && n > 0) {
+      ctx.fillText(line, 120, y);
       line = bodyWords[n] + ' ';
       y += 42;
       if (y > 780) break;
@@ -324,7 +345,7 @@ function createSectionCanvasTexture(section) {
       line = testLine;
     }
   }
-  ctx.fillText(line, 60, y);
+  ctx.fillText(line, 120, y);
 
   // Quote or Feature Highlight if present
   if (section.quote) {
@@ -753,25 +774,43 @@ buildSpatialLibrary();
 buildKnowledgeTunnel();
 buildKnowledgeConstellation();
 
-// ─── Camera Waypoints & Transitions ──────────────────────────────
-function getCameraWaypoint(sectionIdx, world = state.currentWorld) {
+// ─── Camera Waypoints & Slideshow Progression Engine ──────────────
+function getSlideReadingDistance() {
+  const aspect = window.innerWidth / Math.max(window.innerHeight, 1);
+  if (aspect < 0.6) {
+    // Narrow smartphone portrait (360px - 430px)
+    // Fix: 10.8m showed only ~4.1m horizontal — card is 5.2m wide → clips
+    // 13.5m gives ~5.4m horizontal coverage → card fully visible
+    return 13.5;
+  } else if (aspect < 1.0) {
+    // Tablet portrait / square
+    return 8.8;
+  } else {
+    // Desktop / Landscape
+    return 7.2;
+  }
+}
+
+function getProgressWaypoint(progress, world = state.currentWorld) {
+  const readDist = getSlideReadingDistance();
   if (world === 'library') {
-    const zPos = -sectionIdx * 16;
+    const zPos = -progress * 16;
     return {
-      position: new THREE.Vector3(0, 3.4, zPos + 8.5),
-      target: new THREE.Vector3(0, 2.8, zPos)
+      position: new THREE.Vector3(0, 3.4, zPos + readDist),
+      target: new THREE.Vector3(0, 3.4, zPos)
     };
   } else if (world === 'tunnel') {
-    const zPos = -sectionIdx * 18;
+    const zPos = -progress * 18;
     return {
-      position: new THREE.Vector3(0, 2.5, zPos + 7.5),
+      position: new THREE.Vector3(0, 2.5, zPos + readDist * 0.9),
       target: new THREE.Vector3(0, 2.5, zPos)
     };
   } else {
-    const angle = (sectionIdx / ARTICLE_DATA.sections.length) * Math.PI * 2;
+    const total = ARTICLE_DATA.sections.length;
+    const angle = (progress / total) * Math.PI * 2;
     const radius = 16.0;
     const x = Math.cos(angle) * radius;
-    const y = Math.sin(sectionIdx * 0.8) * 3.5 + 2.0;
+    const y = Math.sin(progress * 0.8) * 3.5 + 2.0;
     const z = Math.sin(angle) * radius - 15;
     return {
       position: new THREE.Vector3(x * 0.65, y + 1.2, z * 0.65),
@@ -780,22 +819,48 @@ function getCameraWaypoint(sectionIdx, world = state.currentWorld) {
   }
 }
 
+function getCameraWaypoint(sectionIdx, world = state.currentWorld) {
+  return getProgressWaypoint(sectionIdx, world);
+}
+
 let targetCamPos = new THREE.Vector3();
 let targetCamLook = new THREE.Vector3();
+let isTransitioning = false;
+let slideProgress = 0.0;
+let targetSlideProgress = 0.0;
 
-function navigateToSection(index, updateHash = true) {
+function updateScrollerUI(p = slideProgress) {
+  const maxIdx = Math.max(1, ARTICLE_DATA.sections.length - 1);
+  const clamped = Math.max(0, Math.min(maxIdx, p));
+  const ratio = clamped / maxIdx;
+  const pct = Math.min(100, Math.max(0, ratio * 100));
+
+  if (scrollerFill) scrollerFill.style.height = `${pct}%`;
+  if (scrollerThumb) {
+    scrollerThumb.style.top = `${pct}%`;
+    scrollerThumb.setAttribute('aria-valuenow', Math.round(clamped));
+  }
+  if (scrollerBadge) {
+    scrollerBadge.textContent = `SLIDE ${Math.round(clamped) + 1}`;
+  }
+
+  // Active tick update
+  const activeIdx = Math.round(clamped);
+  document.querySelectorAll('.scroller-tick').forEach((tick, i) => {
+    tick.classList.toggle('active', i === activeIdx);
+  });
+
+  // Nav buttons disabled state
+  if (btnNavPrev) btnNavPrev.disabled = (activeIdx <= 0);
+  if (btnNavNext) btnNavNext.disabled = (activeIdx >= maxIdx);
+  if (scrollerBtnUp) scrollerBtnUp.disabled = (activeIdx <= 0);
+  if (scrollerBtnDown) scrollerBtnDown.disabled = (activeIdx >= maxIdx);
+}
+
+function updateSectionMetadata(index, updateHash = true) {
   if (index < 0 || index >= ARTICLE_DATA.sections.length) return;
-  state.currentSection = index;
-
   const section = ARTICLE_DATA.sections[index];
   const wp = getCameraWaypoint(index);
-  targetCamPos.copy(wp.position);
-  targetCamLook.copy(wp.target);
-
-  if (state.motion === 'off') {
-    camera.position.copy(targetCamPos);
-    controls.target.copy(targetCamLook);
-  }
 
   // Update Dynamic Light & Fog
   accentLight.color.set(section.color || 0x00f3ff);
@@ -806,21 +871,20 @@ function navigateToSection(index, updateHash = true) {
 
   // Update HUD elements
   hudArticleTitle.textContent = section.title;
-  hudChapterBadge.textContent = `SEC 0${index + 1} / 0${ARTICLE_DATA.sections.length}`;
+  hudChapterBadge.textContent = `SLIDE 0${index + 1} / 0${ARTICLE_DATA.sections.length}`;
   hudPageDetail.textContent = section.spatialZone;
   const progressPct = ((index + 1) / ARTICLE_DATA.sections.length) * 100;
   hudProgressFill.style.width = `${progressPct}%`;
   outlineProgressFill.style.width = `${progressPct}%`;
-  outlineSectionLabel.textContent = `Section ${index + 1} of ${ARTICLE_DATA.sections.length}`;
+  outlineSectionLabel.textContent = `Slide ${index + 1} of ${ARTICLE_DATA.sections.length}`;
   outlinePercentage.textContent = `${Math.round(progressPct)}% Read`;
 
   // Update Spatial Focus Surface Content
   focusZoneTag.textContent = section.spatialZone;
   focusZoneTag.style.color = section.color;
-  focusChapterTag.textContent = `SECTION 0${index + 1} / 0${ARTICLE_DATA.sections.length}`;
+  focusChapterTag.textContent = `SLIDE 0${index + 1} / 0${ARTICLE_DATA.sections.length}`;
   focusTitle.textContent = section.title;
   focusTitle.style.borderLeftColor = section.color;
-
   focusParagraphs.innerHTML = section.paragraphs.map(p => `<p>${p}</p>`).join('');
 
   if (section.quote) {
@@ -845,6 +909,21 @@ function navigateToSection(index, updateHash = true) {
   focusContextText.textContent = section.layerContext || 'No contextual addenda available.';
   focusResearchText.textContent = section.layerDeepResearch || 'No formal specification recorded.';
 
+  // Update Side Floating Orb Content
+  const orbZoneTag = document.getElementById('orb-zone-tag');
+  const orbCardTitle = document.getElementById('orb-card-title');
+  const orbEssentialText = document.getElementById('orb-essential-text');
+  const orbContextText = document.getElementById('orb-context-text');
+  const orbResearchText = document.getElementById('orb-research-text');
+  const orbBallText = document.getElementById('orb-ball-text');
+
+  if (orbZoneTag) orbZoneTag.textContent = `SLIDE 0${index + 1} · SPATIAL NODE`;
+  if (orbCardTitle) orbCardTitle.textContent = section.title;
+  if (orbEssentialText) orbEssentialText.innerHTML = section.paragraphs.map(p => `<p>${p}</p>`).join('');
+  if (orbContextText) orbContextText.innerHTML = `<p>${section.layerContext || 'Contextual analysis embedded in 3D scene.'}</p>`;
+  if (orbResearchText) orbResearchText.innerHTML = `<p>${section.layerDeepResearch || 'Formal empirical data visualized in 3D space.'}</p>`;
+  if (orbBallText) orbBallText.textContent = index === 0 ? 'PROLOGUE' : `SLIDE ${index + 1}`;
+
   // Highlight Active Outline Item
   document.querySelectorAll('.outline-nav-item').forEach((item, idx) => {
     item.classList.toggle('active', idx === index);
@@ -855,11 +934,29 @@ function navigateToSection(index, updateHash = true) {
     window.location.hash = section.hash;
   }
 
-  // Audio trigger
   playTransitionSound();
-
-  // Save to LocalStorage
   saveState();
+}
+
+function navigateToSection(index, updateHash = true) {
+  if (index < 0 || index >= ARTICLE_DATA.sections.length) return;
+  state.currentSection = index;
+  targetSlideProgress = index;
+
+  const wp = getCameraWaypoint(index);
+  targetCamPos.copy(wp.position);
+  targetCamLook.copy(wp.target);
+  isTransitioning = true;
+
+  if (state.motion === 'off') {
+    camera.position.copy(targetCamPos);
+    controls.target.copy(targetCamLook);
+    slideProgress = index;
+    isTransitioning = false;
+  }
+
+  updateSectionMetadata(index, updateHash);
+  updateScrollerUI(index);
 }
 
 function setReadingMode(mode) {
@@ -931,8 +1028,11 @@ function openInspectModal(title, badge, htmlContent) {
   playClickSound();
 }
 
+let lastModalCloseTime = 0;
+
 function closeInspectModal() {
   inspectModal.classList.remove('open');
+  lastModalCloseTime = performance.now();
   playClickSound();
 }
 
@@ -1067,18 +1167,130 @@ btnOpenOutlineThumb.addEventListener('click', openOutlineDrawer);
 btnCloseOutline.addEventListener('click', closeOutlineDrawer);
 outlineBackdrop.addEventListener('click', closeOutlineDrawer);
 
-// Navigation Next/Prev
-btnNavPrev.addEventListener('click', () => {
-  if (state.currentSection > 0) {
-    navigateToSection(state.currentSection - 1);
+// ─── Slideshow & Scroller Controls ──────────────────────────────
+function initSlideshowControls() {
+  // Scroller Up / Down buttons
+  if (scrollerBtnUp) {
+    scrollerBtnUp.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (state.currentSection > 0) {
+        navigateToSection(state.currentSection - 1);
+      }
+    });
   }
-});
 
-btnNavNext.addEventListener('click', () => {
-  if (state.currentSection < ARTICLE_DATA.sections.length - 1) {
-    navigateToSection(state.currentSection + 1);
+  if (scrollerBtnDown) {
+    scrollerBtnDown.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (state.currentSection < ARTICLE_DATA.sections.length - 1) {
+        navigateToSection(state.currentSection + 1);
+      }
+    });
   }
-});
+
+  // Scroller Dragging & Track Clicking
+  if (scrollerTrack && slideshowScroller) {
+    let isDraggingThumb = false;
+
+    function handleScrubberPointer(e) {
+      const rect = scrollerTrack.getBoundingClientRect();
+      const clientY = e.clientY != null ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+      const relY = Math.max(0, Math.min(rect.height, clientY - rect.top));
+      const ratio = rect.height > 0 ? relY / rect.height : 0;
+      const maxIdx = Math.max(1, ARTICLE_DATA.sections.length - 1);
+      const progress = ratio * maxIdx;
+
+      slideProgress = progress;
+      targetSlideProgress = progress;
+
+      // Continuously glide camera along the 3D corridor
+      const wp = getProgressWaypoint(progress);
+      camera.position.copy(wp.position);
+      controls.target.copy(wp.target);
+      targetCamPos.copy(wp.position);
+      targetCamLook.copy(wp.target);
+      isTransitioning = false;
+
+      updateScrollerUI(progress);
+
+      const nearestIdx = Math.round(progress);
+      if (nearestIdx !== state.currentSection) {
+        state.currentSection = nearestIdx;
+        updateSectionMetadata(nearestIdx, false);
+      }
+    }
+
+    scrollerTrack.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      isDraggingThumb = true;
+      slideshowScroller.classList.add('is-dragging');
+      try {
+        scrollerTrack.setPointerCapture(e.pointerId);
+      } catch (err) {}
+      handleScrubberPointer(e);
+    });
+
+    scrollerTrack.addEventListener('pointermove', (e) => {
+      if (!isDraggingThumb) return;
+      e.stopPropagation();
+      e.preventDefault();
+      handleScrubberPointer(e);
+    });
+
+    const finishScrubbing = (e) => {
+      if (!isDraggingThumb) return;
+      isDraggingThumb = false;
+      slideshowScroller.classList.remove('is-dragging');
+      try {
+        if (e.pointerId && scrollerTrack.hasPointerCapture(e.pointerId)) {
+          scrollerTrack.releasePointerCapture(e.pointerId);
+        }
+      } catch (err) {}
+      // Snap camera into clean reading position of the nearest slide
+      const targetIdx = Math.round(slideProgress);
+      navigateToSection(targetIdx);
+    };
+
+    scrollerTrack.addEventListener('pointerup', finishScrubbing);
+    scrollerTrack.addEventListener('pointercancel', finishScrubbing);
+  }
+
+  // Scroller Ticks Clicking
+  document.querySelectorAll('.scroller-tick').forEach(tick => {
+    tick.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const slideIdx = parseInt(tick.dataset.slide, 10);
+      if (!isNaN(slideIdx)) {
+        navigateToSection(slideIdx);
+      }
+    });
+  });
+
+  // Next & Prev Bottom Buttons
+  if (btnNavPrev) {
+    btnNavPrev.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (state.currentSection > 0) {
+        navigateToSection(state.currentSection - 1);
+      }
+    });
+  }
+
+  if (btnNavNext) {
+    btnNavNext.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (state.currentSection < ARTICLE_DATA.sections.length - 1) {
+        navigateToSection(state.currentSection + 1);
+      }
+    });
+  }
+}
 
 // Layer tabs (Essential / Context / Deep Research)
 layerTabs.forEach(tab => {
@@ -1092,10 +1304,22 @@ layerTabs.forEach(tab => {
 });
 
 // Modal close
-modalCloseBtn.addEventListener('click', closeInspectModal);
-modalBtnClose.addEventListener('click', closeInspectModal);
+modalCloseBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  e.preventDefault();
+  closeInspectModal();
+});
+modalBtnClose.addEventListener('click', (e) => {
+  e.stopPropagation();
+  e.preventDefault();
+  closeInspectModal();
+});
 inspectModal.addEventListener('click', (e) => {
-  if (e.target === inspectModal) closeInspectModal();
+  if (e.target === inspectModal) {
+    e.stopPropagation();
+    e.preventDefault();
+    closeInspectModal();
+  }
 });
 
 // Fallback return
@@ -1158,10 +1382,15 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-// Scroll wheel spatial navigation
+// Scroll wheel spatial navigation (Shift+Wheel or over HUD navigates; plain wheel on canvas zooms)
 let wheelAccum = 0;
 window.addEventListener('wheel', (e) => {
   if (state.currentMode === 'focus' || state.currentMode === 'fallback') return;
+  // If user is wheeling over the 3D canvas without Shift key, let OrbitControls smoothly zoom
+  if (e.target === canvas && !e.shiftKey) {
+    isTransitioning = false;
+    return;
+  }
   wheelAccum += e.deltaY;
   if (Math.abs(wheelAccum) > 120) {
     if (wheelAccum > 0 && state.currentSection < ARTICLE_DATA.sections.length - 1) {
@@ -1174,17 +1403,29 @@ window.addEventListener('wheel', (e) => {
 }, { passive: true });
 
 // Mobile Touch gestures (Swipe detection)
+// Fix: Track OrbitControls rotation to prevent
+// accidental slide switching during camera drag/zoom
 let touchStartX = 0;
 let touchStartY = 0;
+let hasRotated = false;
+
+controls.addEventListener('change', () => {
+  if (!isTransitioning) {
+    hasRotated = true;
+  }
+});
+
 window.addEventListener('touchstart', (e) => {
   if (e.touches.length === 1) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
+    hasRotated = false; // Reset on new touch
   }
 }, { passive: true });
 
 window.addEventListener('touchend', (e) => {
-  if (e.changedTouches.length === 1) {
+  // Only trigger slide switch if user didn't rotate/zoom
+  if (e.changedTouches.length === 1 && !hasRotated) {
     const deltaX = e.changedTouches[0].clientX - touchStartX;
     const deltaY = e.changedTouches[0].clientY - touchStartY;
     if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY)) {
@@ -1197,9 +1438,32 @@ window.addEventListener('touchend', (e) => {
   }
 }, { passive: true });
 
-// Raycasting click detection on 3D objects
+// Raycasting click detection on 3D objects with strict tap-vs-drag discrimination
+let pointerDownX = 0;
+let pointerDownY = 0;
+let pointerDownTime = 0;
+
 window.addEventListener('pointerdown', (e) => {
   if (e.target !== canvas) return;
+  pointerDownX = e.clientX;
+  pointerDownY = e.clientY;
+  pointerDownTime = performance.now();
+});
+
+window.addEventListener('pointerup', (e) => {
+  if (e.target !== canvas) return;
+
+  // Guard 1: Cooldown after closing modal (prevents accidental immediate re-trigger)
+  if (performance.now() - lastModalCloseTime < 450) return;
+
+  // Guard 2: If the pointer moved more than 8px, it was a DRAG/ORBIT gesture, NOT a click
+  const dist = Math.hypot(e.clientX - pointerDownX, e.clientY - pointerDownY);
+  if (dist > 8) return;
+
+  // Guard 3: If touch held longer than 350ms, it was a hold/drag, NOT a quick tap
+  const duration = performance.now() - pointerDownTime;
+  if (duration > 350) return;
+
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
@@ -1269,11 +1533,22 @@ let fpsTimer = performance.now();
 function animate(currentTime) {
   requestAnimationFrame(animate);
 
-  // Smooth Camera Interpolation
-  const lerpFactor = state.motion === 'reduced' ? 0.08 : 0.045;
-  if (state.motion !== 'off') {
+  // Smooth Camera Interpolation only during active programmatic transitions
+  if (isTransitioning && state.motion !== 'off') {
+    const lerpFactor = state.motion === 'reduced' ? 0.09 : 0.055;
     camera.position.lerp(targetCamPos, lerpFactor);
     controls.target.lerp(targetCamLook, lerpFactor);
+
+    slideProgress = THREE.MathUtils.lerp(slideProgress, targetSlideProgress, lerpFactor);
+    updateScrollerUI(slideProgress);
+
+    if (camera.position.distanceTo(targetCamPos) < 0.08 && controls.target.distanceTo(targetCamLook) < 0.08) {
+      isTransitioning = false;
+      camera.position.copy(targetCamPos);
+      controls.target.copy(targetCamLook);
+      slideProgress = targetSlideProgress;
+      updateScrollerUI(slideProgress);
+    }
   }
   controls.update();
 
@@ -1303,6 +1578,105 @@ function animate(currentTime) {
   }
 }
 
+// ─── Side Floating Round Ball (Orb Widget) Controller ──────────
+function initSideOrbWidget() {
+  const widget = document.getElementById('side-floating-orb-widget');
+  const orbBall = document.getElementById('floating-round-ball');
+  const closeBtn = document.getElementById('orb-card-close');
+  const tabBtns = document.querySelectorAll('.orb-tab-btn');
+  const panels = {
+    essential: document.getElementById('orb-panel-essential'),
+    context: document.getElementById('orb-panel-context'),
+    research: document.getElementById('orb-panel-research'),
+  };
+
+  if (!widget || !orbBall) return;
+
+  function toggleOrbCard(e) {
+    if (e) e.stopPropagation();
+    widget.classList.toggle('expanded');
+    playTone(widget.classList.contains('expanded') ? 580 : 380, 'sine', 0.16, 0.12);
+  }
+
+  orbBall.addEventListener('click', toggleOrbCard);
+  orbBall.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleOrbCard(e);
+    }
+  });
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      widget.classList.remove('expanded');
+      playTone(340, 'sine', 0.14, 0.08);
+    });
+  }
+
+  // Layer Tab switching
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const targetLayer = btn.getAttribute('data-orb-layer');
+      tabBtns.forEach(b => b.classList.toggle('active', b === btn));
+      Object.keys(panels).forEach(k => {
+        if (panels[k]) panels[k].classList.toggle('active', k === targetLayer);
+      });
+      playTone(targetLayer === 'essential' ? 440 : targetLayer === 'context' ? 554 : 659, 'sine', 0.12, 0.1);
+    });
+  });
+}
+
+// ─── Spatial Camera Zoom Controls (+, −, ⟲) ───────────────────
+function initSpatialZoomControls() {
+  const btnZoomIn = document.getElementById('btn-zoom-in');
+  const btnZoomOut = document.getElementById('btn-zoom-out');
+  const btnZoomReset = document.getElementById('btn-zoom-reset');
+
+  function zoomCameraBy(factor) {
+    isTransitioning = false;
+    const offset = new THREE.Vector3().subVectors(camera.position, controls.target);
+    offset.multiplyScalar(factor);
+    const newDist = offset.length();
+    if (newDist >= controls.minDistance && newDist <= controls.maxDistance) {
+      camera.position.addVectors(controls.target, offset);
+      targetCamPos.copy(camera.position);
+      targetCamLook.copy(controls.target);
+      controls.update();
+      playClickSound();
+    }
+  }
+
+  if (btnZoomIn) {
+    btnZoomIn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      zoomCameraBy(0.75); // Zoom In
+    });
+  }
+
+  if (btnZoomOut) {
+    btnZoomOut.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      zoomCameraBy(1.35); // Zoom Out
+    });
+  }
+
+  if (btnZoomReset) {
+    btnZoomReset.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const wp = getCameraWaypoint(state.currentSection);
+      targetCamPos.copy(wp.position);
+      targetCamLook.copy(wp.target);
+      isTransitioning = true;
+      playClickSound();
+    });
+  }
+}
+
 // ─── Initializer ─────────────────────────────────────────────────
 function init() {
   loadState();
@@ -1324,6 +1698,17 @@ function init() {
   controls.target.copy(initialWp.target);
   targetCamPos.copy(initialWp.position);
   targetCamLook.copy(initialWp.target);
+  slideProgress = state.currentSection;
+  targetSlideProgress = state.currentSection;
+
+  // Initialize Slideshow & Scroller Controls
+  initSlideshowControls();
+  updateScrollerUI(slideProgress);
+
+  // Initialize Side Floating Orb Widget
+  initSideOrbWidget();
+  // Initialize Spatial Zoom Controls (+, −, ⟲)
+  initSpatialZoomControls();
 
   animate(performance.now());
 }

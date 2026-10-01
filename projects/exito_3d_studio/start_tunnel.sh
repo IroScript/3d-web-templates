@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-PROJECT_DIR="/home/mdkamruzzamanirak_gmail_com/3D-Game-Design-Studio/projects/exito_3d_studio"
+PROJECT_DIR="/home/azureuser/3D-Game-Design-Studio/projects/exito_3d_studio"
 PORT=5174
 LOG_DIR="$PROJECT_DIR/logs"
 mkdir -p "$LOG_DIR"

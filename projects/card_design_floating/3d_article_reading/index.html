@@ -231,24 +231,154 @@
     </div>
   </main>
 
-  <!-- Bottom Thumb-Zone Controls (Mobile-First Ergonomics) -->
-  <footer id="spatial-thumb-bar">
-    <button class="thumb-nav-btn" id="btn-nav-prev" title="Previous Section">
-      <span class="btn-arrow">&lt;</span>
-      <span class="btn-text">PREV</span>
-    </button>
-
-    <div class="thumb-progress-group" id="btn-open-outline-thumb">
-      <span class="progress-chapter-badge" id="hud-chapter-badge">SEC 01 / 08</span>
-      <div class="progress-mini-track">
-        <div class="progress-mini-fill" id="hud-progress-fill" style="width: 12.5%;"></div>
+  <!-- Side Floating Round Ball (Orb Widget) -->
+  <aside id="side-floating-orb-widget" class="side-floating-orb-widget" aria-label="Prologue Floating Round Ball">
+    <!-- The Floating Round Ball Trigger -->
+    <div class="floating-round-ball" id="floating-round-ball" role="button" tabindex="0" title="Toggle 2D Article Sphere">
+      <div class="orb-sphere">
+        <div class="orb-inner-core"></div>
+        <div class="orb-orbital-ring"></div>
+        <div class="orb-icon">🔮</div>
       </div>
-      <span class="progress-detail" id="hud-page-detail">Chamber of Inception</span>
+      <div class="orb-pulse-ring"></div>
+      <div class="orb-label-badge">
+        <span class="orb-dot"></span>
+        <span class="orb-text" id="orb-ball-text">2D ARTICLE</span>
+      </div>
     </div>
 
-    <button class="thumb-nav-btn" id="btn-nav-next" title="Next Section">
-      <span class="btn-text">NEXT</span>
-      <span class="btn-arrow">&gt;</span>
+    <!-- The Floating Expanded Card Anchored to the Ball -->
+    <div class="orb-content-card" id="orb-content-card">
+      <div class="orb-card-header">
+        <div class="orb-header-meta">
+          <span class="orb-zone-tag" id="orb-zone-tag">SPATIAL NODE · 01</span>
+          <span class="orb-live-badge"><span class="pulse-dot"></span>ACTIVE</span>
+        </div>
+        <button class="orb-card-close" id="orb-card-close" title="Minimize to Floating Ball">✕</button>
+      </div>
+
+      <h3 class="orb-card-title" id="orb-card-title">PROLOGUE: THE EMERGENCE THRESHOLD</h3>
+
+      <!-- 3 Layer Tabs -->
+      <div class="orb-layer-tabs" role="tablist">
+        <button class="orb-tab-btn active" data-orb-layer="essential">
+          <span class="orb-tab-dot"></span>
+          Layer 1: Essential
+        </button>
+        <button class="orb-tab-btn" data-orb-layer="context">
+          <span class="orb-tab-dot"></span>
+          Layer 2: Context
+        </button>
+        <button class="orb-tab-btn" data-orb-layer="research">
+          <span class="orb-tab-dot"></span>
+          Layer 3: Deep Research
+        </button>
+      </div>
+
+      <!-- Layer 1 Content: Essential -->
+      <div class="orb-layer-panel active" id="orb-panel-essential">
+        <div class="orb-body-paragraph" id="orb-essential-text">
+          <p>In the winter of 2024, our research team at the Synthetics Institute observed an anomalous convergence across distributed 70-billion-parameter neural matrices. For decades, computational theorists treated artificial neural networks as sophisticated statistical mirrors—mathematical devices mapping input tokens to probability distributions without internal subjective geometry.</p>
+        </div>
+      </div>
+
+      <!-- Layer 2 Content: Context -->
+      <div class="orb-layer-panel" id="orb-panel-context">
+        <div class="orb-callout-box context-box">
+          <div class="orb-callout-header">
+            <span class="callout-icon">💡</span>
+            <span class="callout-title">HISTORICAL & NEUROLOGICAL CONTEXT</span>
+          </div>
+          <div class="orb-body-paragraph" id="orb-context-text">
+            <p>Historical Context: Alan Turing conjectured in 1950 that sufficient functional equivalence in symbolic exchange would imply intelligence. Today, high-dimensional latent manifolds demonstrate that spatial intuition precedes language, not the reverse.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer 3 Content: Deep Research -->
+      <div class="orb-layer-panel" id="orb-panel-research">
+        <div class="orb-callout-box research-box">
+          <div class="orb-callout-header">
+            <span class="callout-icon">🔬</span>
+            <span class="callout-title">MATHEMATICAL & EMPIRICAL FORMULATION</span>
+          </div>
+          <div class="orb-body-paragraph code-spec" id="orb-research-text">
+            <p>Mathematical Formulation: Let M represent the latent manifold parametrized by theta. As dimensionality D exceeds 16,384, the intrinsic curvature reveals non-trivial topology homomorphic to continuous spatial representations.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="orb-card-footer">
+        <span class="orb-footer-tip">🔮 Tap ball or ✕ to toggle 2D reading view</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Floating Spatial Camera Zoom Controls (Mobile-First Thumb Friendly) -->
+  <div id="spatial-zoom-controls" class="spatial-zoom-controls" aria-label="Camera Zoom Controls">
+    <button class="zoom-btn" id="btn-zoom-in" title="Zoom In (+)">
+      <span class="zoom-icon">+</span>
+    </button>
+    <button class="zoom-btn" id="btn-zoom-out" title="Zoom Out (−)">
+      <span class="zoom-icon">−</span>
+    </button>
+    <button class="zoom-btn reset-zoom" id="btn-zoom-reset" title="Reset Camera View (⟲)">
+      <span class="zoom-icon">⟲</span>
+    </button>
+  </div>
+
+  <!-- Vertical Slideshow Scroller (Continuous Up/Down Progression) -->
+  <aside id="slideshow-scroller" class="slideshow-scroller" aria-label="Slideshow Scrollbar">
+    <button class="scroller-step-btn" id="scroller-btn-up" title="Scroll Up (Previous Slide / Step Back)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+    </button>
+
+    <div class="scroller-track" id="scroller-track" title="Drag or click to travel between slides">
+      <div class="scroller-groove">
+        <div class="scroller-fill" id="scroller-fill" style="height: 0%;"></div>
+      </div>
+      <div class="scroller-ticks" id="scroller-ticks">
+        <span class="scroller-tick active" data-slide="0" title="Slide 1"></span>
+        <span class="scroller-tick" data-slide="1" title="Slide 2"></span>
+        <span class="scroller-tick" data-slide="2" title="Slide 3"></span>
+        <span class="scroller-tick" data-slide="3" title="Slide 4"></span>
+        <span class="scroller-tick" data-slide="4" title="Slide 5"></span>
+        <span class="scroller-tick" data-slide="5" title="Slide 6"></span>
+        <span class="scroller-tick" data-slide="6" title="Slide 7"></span>
+        <span class="scroller-tick" data-slide="7" title="Slide 8"></span>
+      </div>
+      <div class="scroller-thumb" id="scroller-thumb" tabindex="0" role="slider" aria-valuenow="0" aria-valuemin="0" aria-valuemax="7">
+        <div class="thumb-core"></div>
+        <div class="thumb-badge" id="scroller-badge">SLIDE 1</div>
+      </div>
+    </div>
+
+    <button class="scroller-step-btn" id="scroller-btn-down" title="Scroll Down (Next Slide / Step Forward)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+  </aside>
+
+  <!-- Slideshow Bottom Control Bar (Next / Prev & Slide Status) -->
+  <footer id="spatial-thumb-bar" class="slideshow-nav-bar">
+    <button class="slide-nav-btn prev-btn" id="btn-nav-prev" title="Previous Slide (← / Click)">
+      <span class="btn-arrow">◀</span>
+      <span class="btn-label">PREV SLIDE</span>
+    </button>
+
+    <div class="slide-status-card" id="btn-open-outline-thumb" title="Click to view full slide outline">
+      <div class="slide-badge-row">
+        <span class="live-pulse"></span>
+        <span class="slide-num-badge" id="hud-chapter-badge">SLIDE 01 / 08</span>
+      </div>
+      <div class="slide-title-label" id="hud-page-detail">PROLOGUE: THE EMERGENCE THRESHOLD</div>
+      <div class="slide-progress-line">
+        <div class="slide-progress-bar" id="hud-progress-fill" style="width: 12.5%;"></div>
+      </div>
+    </div>
+
+    <button class="slide-nav-btn next-btn" id="btn-nav-next" title="Next Slide (→ / Click)">
+      <span class="btn-label">NEXT SLIDE</span>
+      <span class="btn-arrow">▶</span>
     </button>
   </footer>
 

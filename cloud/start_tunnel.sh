@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-DIR="/home/mdkamruzzamanirak_gmail_com/3D-Game-Design-Studio"
+DIR="/home/azureuser/3D-Game-Design-Studio"
 cd "$DIR"
 
 # 1. Kill any existing preview or 3d-tunnel process if already running
@@ -10,7 +10,7 @@ pkill -f "cloudflared tunnel --url http://127.0.0.1:5173" || true
 sleep 1
 
 # 2. Start Vite Preview server in background
-nohup npm run preview > "$DIR/cloud/preview.log" 2>&1 &
+setsid npx vite preview --host 0.0.0.0 --port 5173 </dev/null > "$DIR/cloud/preview.log" 2>&1 &
 echo $! > "$DIR/cloud/preview.pid"
 
 # 3. Wait for port 5173 to be ready
@@ -24,7 +24,7 @@ done
 
 # 4. Start Cloudflare Tunnel
 rm -f "$DIR/cloud/cloudflared.log"
-nohup /usr/bin/cloudflared tunnel --url http://127.0.0.1:5173 --logfile "$DIR/cloud/cloudflared.log" > /dev/null 2>&1 &
+setsid /usr/bin/cloudflared tunnel --url http://127.0.0.1:5173 --http-host-header localhost --logfile "$DIR/cloud/cloudflared.log" > /dev/null 2>&1 &
 echo $! > "$DIR/cloud/cloudflared.pid"
 
 # 5. Extract public trycloudflare.com URL
