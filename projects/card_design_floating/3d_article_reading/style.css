@@ -1553,27 +1553,11 @@ body.mode-fallback .fallback-2d-view {
     display: none;
   }
   
-  .spatial-focus-surface {
-    bottom: 74px;
-    padding: 16px 18px;
-    max-height: 56vh;
-    width: calc(100vw - 20px);
-    border-radius: 18px;
-  }
-  
   .floating-article-fab {
     right: 14px;
     bottom: 78px;
     padding: 8px 14px;
     font-size: 12px;
-  }
-  
-  .surface-title {
-    font-size: 17px;
-  }
-  
-  .surface-paragraphs {
-    font-size: 15px;
   }
   
   #spatial-thumb-bar {
@@ -1960,4 +1944,207 @@ body.mode-fallback .fallback-2d-view {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   min-width: 28px;
   text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   COMMIT 3: ACCESSIBILITY, POINTER EVENTS, HITBOXES & FOCUS RINGS
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Canvas Pointer Rules */
+#webgl-canvas,
+.spatial-canvas-container {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* W3C Accessible Focus Rings (:focus-visible) */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+.slide-outline-trigger:focus-visible {
+  outline: 2px solid var(--accent-cyan) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 14px rgba(0, 243, 255, 0.7) !important;
+}
+
+/* Minimum 44x44px Touch Targets on all Interactive Controls */
+.hud-return-btn {
+  min-width: 44px;
+  min-height: 44px;
+  gap: 8px;
+}
+
+.spatial-mode-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.btn-menu-trigger {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.slide-nav-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.floating-article-fab {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.menu-close-btn,
+.surface-close-btn,
+.modal-close-btn,
+.help-close-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.menu-world-btn {
+  min-height: 44px;
+}
+
+.menu-zoom-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.menu-action-btn {
+  min-height: 44px;
+}
+
+.btn-expand-layers {
+  min-height: 44px;
+}
+
+.sheet-drag-handle {
+  min-height: 44px;
+}
+
+/* Slide Outline Trigger Button */
+.slide-outline-trigger {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 12px;
+  min-height: 44px;
+  min-width: 44px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.slide-outline-trigger:hover {
+  background: rgba(0, 243, 255, 0.12);
+}
+
+/* 44x44px Clickable Progress Dots */
+.progress-dot {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 12px;
+  transition: transform 0.2s ease;
+}
+
+.progress-dot .dot-indicator {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.progress-dot:hover .dot-indicator {
+  background: var(--accent-cyan);
+  transform: scale(1.3);
+  box-shadow: 0 0 10px var(--accent-cyan);
+}
+
+.progress-dot.active .dot-indicator {
+  width: 24px;
+  border-radius: 8px;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 12px var(--accent-cyan);
+}
+
+/* Hover Tooltip / Label for 3D Objects */
+.spatial-hover-label {
+  position: fixed;
+  pointer-events: none;
+  z-index: 180;
+  padding: 6px 12px;
+  background: rgba(10, 16, 32, 0.94);
+  border: 1px solid rgba(0, 243, 255, 0.6);
+  border-radius: 8px;
+  color: #00f3ff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), 0 0 12px rgba(0, 243, 255, 0.3);
+  transform: translate(-50%, -140%);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.spatial-hover-label.visible {
+  opacity: 1;
+}
+
+/* Responsive Gaps & Layout */
+@media (max-width: 900px) {
+  .thumb-progress-dots {
+    display: none;
+  }
+  
+  .slide-status-card {
+    min-width: 120px;
+    padding: 0;
+  }
+
+  .slide-outline-trigger {
+    padding: 4px 8px;
+  }
+  
+  .slide-title-label {
+    display: none;
+  }
+
+  .article-info-pill {
+    display: inline-flex !important;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  
+  .article-info-pill #hud-section-label {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }

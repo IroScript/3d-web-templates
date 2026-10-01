@@ -199,12 +199,16 @@ renderer.toneMappingExposure = 1.25;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.06;
+controls.dampingFactor = 0.08;
 controls.rotateSpeed = 0.7;
-controls.zoomSpeed = 1.3;
+controls.zoomSpeed = 1.2;
 controls.panSpeed = 0.6;
-controls.maxDistance = 220; // Allow deep cosmic zoom-out
-controls.minDistance = 1.2;
+controls.minDistance = 2.5; // Bound minimum zoom distance
+controls.maxDistance = 140.0; // Bound maximum zoom distance
+controls.touches = {
+  ONE: THREE.TOUCH.ROTATE,
+  TWO: THREE.TOUCH.DOLLY_PAN
+};
 
 // Disengage camera lerp on manual user interaction
 controls.addEventListener('start', () => {
@@ -1385,17 +1389,53 @@ btnToggleDebug.addEventListener('click', () => {
   playClickSound();
 });
 
-// Keyboard navigation
+// Accessible Keyboard Shortcuts (←/→ navigation, R reading panel, Esc close, M mute, ? help)
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+  // Ignore keystrokes inside text inputs or textareas
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') {
     if (state.currentSection < ARTICLE_DATA.sections.length - 1) {
       e.preventDefault();
       navigateToSection(state.currentSection + 1);
     }
-  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+  } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
     if (state.currentSection > 0) {
       e.preventDefault();
       navigateToSection(state.currentSection - 1);
+    }
+  } else if (e.key === 'r' || e.key === 'R') {
+    e.preventDefault();
+    toggleFocusSurface();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    // Close overlays in hierarchical order
+    const helpModal = document.getElementById('spatial-help-modal');
+    const quickMenu = document.getElementById('spatial-quick-menu');
+    const inspectModal = document.getElementById('spatial-inspect-modal');
+
+    if (helpModal && helpModal.style.display !== 'none') {
+      if (typeof closeHelpModal === 'function') closeHelpModal();
+      else helpModal.style.display = 'none';
+    } else if (quickMenu && quickMenu.style.display !== 'none') {
+      quickMenu.style.display = 'none';
+    } else if (inspectModal && inspectModal.classList.contains('open')) {
+      closeInspectModal();
+    } else if (focusSurface && focusSurface.classList.contains('open')) {
+      toggleFocusSurface(false);
+    }
+  } else if (e.key === 'm' || e.key === 'M') {
+    e.preventDefault();
+    state.audio = !state.audio;
+    updateAudioUI();
+    playTone(state.audio ? 520 : 280, 'sine', 0.1, 0.1);
+  } else if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+    e.preventDefault();
+    if (typeof openHelpModal === 'function') {
+      const helpModal = document.getElementById('spatial-help-modal');
+      const isOpen = helpModal && helpModal.style.display !== 'none';
+      if (isOpen) closeHelpModal();
+      else openHelpModal();
     }
   } else if (e.key === 'Home') {
     e.preventDefault();
@@ -1405,27 +1445,15 @@ window.addEventListener('keydown', (e) => {
     navigateToSection(ARTICLE_DATA.sections.length - 1);
   } else if (e.key === 'd' || e.key === 'D') {
     state.debug = !state.debug;
-    debugHud.style.display = state.debug ? 'flex' : 'none';
+    if (debugHud) debugHud.style.display = state.debug ? 'flex' : 'none';
   }
 });
 
-// Scroll wheel spatial navigation (Shift+Wheel or over HUD navigates; plain wheel on canvas zooms)
-let wheelAccum = 0;
+// Scroll wheel: only zooms 3D canvas via OrbitControls; never switches sections.
+// Panel scrolls its own text with overscroll-behavior: contain.
 window.addEventListener('wheel', (e) => {
-  if (state.currentMode === 'focus' || state.currentMode === 'fallback') return;
-  // If user is wheeling over the 3D canvas without Shift key, let OrbitControls smoothly zoom
-  if (e.target === canvas && !e.shiftKey) {
-    isTransitioning = false;
-    return;
-  }
-  wheelAccum += e.deltaY;
-  if (Math.abs(wheelAccum) > 120) {
-    if (wheelAccum > 0 && state.currentSection < ARTICLE_DATA.sections.length - 1) {
-      navigateToSection(state.currentSection + 1);
-    } else if (wheelAccum < 0 && state.currentSection > 0) {
-      navigateToSection(state.currentSection - 1);
-    }
-    wheelAccum = 0;
+  if (e.target === canvas) {
+    isTransitioning = false; // Disengage programmatic transition on zoom
   }
 }, { passive: true });
 
@@ -1465,40 +1493,95 @@ window.addEventListener('touchend', (e) => {
   }
 }, { passive: true });
 
-// Raycasting click detection on 3D objects with strict tap-vs-drag discrimination
+// ─── Input Rules: Strict Click vs Drag Discrimination & Throttled Raycast ───
 let pointerDownX = 0;
 let pointerDownY = 0;
 let pointerDownTime = 0;
+let isDraggingGesture = false;
+let hasPointerMoved = false;
+let lastClientX = 0;
+let lastClientY = 0;
+let hoveredObject = null;
+let lastHoveredObject = null;
+
+const hoverLabelEl = document.getElementById('spatial-hover-label');
+
+// Setup invisible large hit-meshes for interactive objects
+function ensureInteractiveHitMeshes() {
+  interactiveObjects.forEach(obj => {
+    if (obj.userData && !obj.userData._hasHitbox) {
+      obj.userData._hasHitbox = true;
+      let hitGeo = null;
+      if (obj.geometry) {
+        obj.geometry.computeBoundingBox();
+        const bbox = obj.geometry.boundingBox;
+        if (bbox) {
+          const sz = new THREE.Vector3();
+          bbox.getSize(sz);
+          hitGeo = new THREE.BoxGeometry(
+            Math.max(sz.x * 2.0, 2.2),
+            Math.max(sz.y * 2.0, 2.2),
+            Math.max(sz.z * 2.0, 2.2)
+          );
+        }
+      }
+      if (!hitGeo) {
+        hitGeo = new THREE.SphereGeometry(1.6, 12, 12);
+      }
+      const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+      const hitMesh = new THREE.Mesh(hitGeo, hitMat);
+      hitMesh.userData = { ...obj.userData, _originalTarget: obj };
+      obj.add(hitMesh);
+    }
+  });
+}
 
 window.addEventListener('pointerdown', (e) => {
   if (e.target !== canvas) return;
   pointerDownX = e.clientX;
   pointerDownY = e.clientY;
   pointerDownTime = performance.now();
+  isDraggingGesture = false;
 });
+
+window.addEventListener('pointermove', (e) => {
+  lastClientX = e.clientX;
+  lastClientY = e.clientY;
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  hasPointerMoved = true;
+
+  if (e.target === canvas) {
+    const dist = Math.hypot(e.clientX - pointerDownX, e.clientY - pointerDownY);
+    if (dist >= 6) {
+      isDraggingGesture = true;
+    }
+  }
+}, { passive: true });
 
 window.addEventListener('pointerup', (e) => {
   if (e.target !== canvas) return;
 
-  // Guard 1: Cooldown after closing modal (prevents accidental immediate re-trigger)
-  if (performance.now() - lastModalCloseTime < 450) return;
+  // Guard 1: Cooldown after closing modal
+  if (performance.now() - lastModalCloseTime < 400) return;
 
-  // Guard 2: If the pointer moved more than 8px, it was a DRAG/ORBIT gesture, NOT a click
+  // Guard 2: Movement < 6px and time < 300ms is a click; otherwise it is a drag!
   const dist = Math.hypot(e.clientX - pointerDownX, e.clientY - pointerDownY);
-  if (dist > 8) return;
-
-  // Guard 3: If touch held longer than 350ms, it was a hold/drag, NOT a quick tap
   const duration = performance.now() - pointerDownTime;
-  if (duration > 350) return;
+  if (dist >= 6 || duration >= 300 || isDraggingGesture) {
+    // It is a drag/orbit gesture: nothing opens during drag!
+    return;
+  }
 
-  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
+  // Valid click: execute raycast
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(interactiveObjects, true);
 
   if (intersects.length > 0) {
     let hit = intersects[0].object;
+    if (hit.userData._originalTarget) {
+      hit = hit.userData._originalTarget;
+    }
     while (hit && !hit.userData.type && hit.parent) {
       hit = hit.parent;
     }
@@ -1535,6 +1618,67 @@ window.addEventListener('pointerup', (e) => {
   }
 });
 
+// Throttled RAF Raycasting for Hover Highlights and Tooltip Label
+function updateHoverRaycast() {
+  if (!hasPointerMoved || state.currentMode === 'fallback') return;
+  hasPointerMoved = false;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(interactiveObjects, true);
+
+  let hitTarget = null;
+  if (intersects.length > 0) {
+    let hit = intersects[0].object;
+    if (hit.userData._originalTarget) {
+      hit = hit.userData._originalTarget;
+    }
+    while (hit && !hit.userData.type && hit.parent) {
+      hit = hit.parent;
+    }
+    if (hit && hit.userData.type) {
+      hitTarget = hit;
+    }
+  }
+
+  if (hitTarget !== lastHoveredObject) {
+    // Un-highlight previous
+    if (lastHoveredObject && lastHoveredObject.material) {
+      if (lastHoveredObject.material._origEmissive !== undefined) {
+        lastHoveredObject.material.emissive.setHex(lastHoveredObject.material._origEmissive);
+        lastHoveredObject.material.emissiveIntensity = lastHoveredObject.material._origIntensity;
+      }
+    }
+
+    // Highlight new
+    if (hitTarget && hitTarget.material && hitTarget.material.emissive) {
+      if (hitTarget.material._origEmissive === undefined) {
+        hitTarget.material._origEmissive = hitTarget.material.emissive.getHex();
+        hitTarget.material._origIntensity = hitTarget.material.emissiveIntensity;
+      }
+      hitTarget.material.emissive.setHex(0x00f3ff);
+      hitTarget.material.emissiveIntensity = 1.3;
+      canvas.style.cursor = 'pointer';
+
+      if (hoverLabelEl) {
+        hoverLabelEl.textContent = hitTarget.userData.title || 'Interactive 3D Object';
+        hoverLabelEl.style.left = `${lastClientX}px`;
+        hoverLabelEl.style.top = `${lastClientY}px`;
+        hoverLabelEl.classList.add('visible');
+      }
+    } else {
+      canvas.style.cursor = 'default';
+      if (hoverLabelEl) {
+        hoverLabelEl.classList.remove('visible');
+      }
+    }
+    lastHoveredObject = hitTarget;
+  } else if (hitTarget && hoverLabelEl) {
+    // Update position if still hovering
+    hoverLabelEl.style.left = `${lastClientX}px`;
+    hoverLabelEl.style.top = `${lastClientY}px`;
+  }
+}
+
 // URL Hash listener
 window.addEventListener('hashchange', () => {
   const hash = window.location.hash.replace('#', '');
@@ -1559,6 +1703,9 @@ let fpsTimer = performance.now();
 
 function animate(currentTime) {
   requestAnimationFrame(animate);
+
+  // Throttled raycasting for 3D hover effects (pointer, highlight, label)
+  updateHoverRaycast();
 
   // Smooth Camera Interpolation only during active programmatic transitions
   if (isTransitioning && state.motion !== 'off') {
@@ -1973,6 +2120,7 @@ function init() {
   initBottomNavDots();
   initFloatingArticleFab();
   initMobileBottomSheet();
+  ensureInteractiveHitMeshes();
   updateCameraViewOffset();
   updateBottomNavUI(state.currentSection);
 
