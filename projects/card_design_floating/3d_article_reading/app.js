@@ -27,18 +27,12 @@ import { OrbitControls } from '../OrbitControls.js';
 import { ARTICLE_DATA } from './article-data.js';
 
 // ─── Application State ───────────────────────────────────────────
-
-// Check prefers-reduced-motion
-if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-  state.motion = 'reduced';
-}
-
 const state = {
   currentSection: 0,
   currentWorld: 'library', // 'library' | 'tunnel' | 'constellation'
-  currentMode: 'read',   // 'spatial' | 'focus' | 'hybrid' | 'explore' | 'fallback'
+  currentMode: 'spatial',   // 'spatial' | 'focus' | 'hybrid' | 'explore' | 'fallback'
   motion: 'full',           // 'full' | 'reduced' | 'off'
-  audioEnabled: false,
+  audioEnabled: true,
   debug: false,
   activeLayer: 'essential', // 'essential' | 'context' | 'research'
   isTransitioning: false,
@@ -198,35 +192,24 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance'
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-const isMobileDevice = window.innerWidth <= 900 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobileDevice ? 1.5 : 2.0));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.25;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.08;
+controls.dampingFactor = 0.06;
 controls.rotateSpeed = 0.7;
-controls.zoomSpeed = 1.2;
+controls.zoomSpeed = 1.3;
 controls.panSpeed = 0.6;
-controls.minDistance = 2.5; // Bound minimum zoom distance
-controls.maxDistance = 140.0; // Bound maximum zoom distance
-controls.touches = {
-  ONE: THREE.TOUCH.ROTATE,
-  TWO: THREE.TOUCH.DOLLY_PAN
-};
+controls.maxDistance = 220; // Allow deep cosmic zoom-out
+controls.minDistance = 1.2;
 
-// Disengage camera lerp immediately on any user touch or pointer interaction
+// Disengage camera lerp on manual user interaction
 controls.addEventListener('start', () => {
   isTransitioning = false;
 });
-canvas.addEventListener('pointerdown', () => {
-  isTransitioning = false;
-}, { passive: true });
-canvas.addEventListener('touchstart', () => {
-  isTransitioning = false;
-}, { passive: true });
 controls.addEventListener('change', () => {
   if (!isTransitioning) {
     targetCamPos.copy(camera.position);
@@ -886,20 +869,15 @@ function updateSectionMetadata(index, updateHash = true) {
   // Update Ambient Glow
   spaceAmbientGlow.style.background = `radial-gradient(circle at 50% 50%, ${section.color}26 0%, ${section.accentColor}14 35%, transparent 70%)`;
 
-  // Update HUD elements (Guarded)
-  if (hudArticleTitle) hudArticleTitle.textContent = section.title;
-  const chapterBadge = document.getElementById('hud-chapter-badge');
-  if (chapterBadge) chapterBadge.textContent = `সেকশন 0${index + 1} / 0${ARTICLE_DATA.sections.length}`;
-  const sectionLabel = document.getElementById('hud-section-label');
-  if (sectionLabel) sectionLabel.textContent = `সেকশন 0${index + 1} / 0${ARTICLE_DATA.sections.length} · ${section.title.split(':')[0]}`;
-  const pageDetail = document.getElementById('hud-page-detail');
-  if (pageDetail) pageDetail.textContent = section.title;
-
+  // Update HUD elements
+  hudArticleTitle.textContent = section.title;
+  hudChapterBadge.textContent = `SLIDE 0${index + 1} / 0${ARTICLE_DATA.sections.length}`;
+  hudPageDetail.textContent = section.spatialZone;
   const progressPct = ((index + 1) / ARTICLE_DATA.sections.length) * 100;
-  if (hudProgressFill) hudProgressFill.style.width = `${progressPct}%`;
-  if (outlineProgressFill) outlineProgressFill.style.width = `${progressPct}%`;
-  if (outlineSectionLabel) outlineSectionLabel.textContent = `Slide ${index + 1} of ${ARTICLE_DATA.sections.length}`;
-  if (outlinePercentage) outlinePercentage.textContent = `${Math.round(progressPct)}% Read`;
+  hudProgressFill.style.width = `${progressPct}%`;
+  outlineProgressFill.style.width = `${progressPct}%`;
+  outlineSectionLabel.textContent = `Slide ${index + 1} of ${ARTICLE_DATA.sections.length}`;
+  outlinePercentage.textContent = `${Math.round(progressPct)}% Read`;
 
   // Update Spatial Focus Surface Content
   focusZoneTag.textContent = section.spatialZone;
@@ -984,56 +962,35 @@ function navigateToSection(index, updateHash = true) {
   }
 
   updateSectionMetadata(index, updateHash);
-  updateBottomNavUI(index);
-  // Auto-open panel on section change in Peek state if on mobile
-  if (state.currentMode === 'read' && focusSurface) {
-    focusSurface.classList.add('open');
-    if (window.innerWidth <= 900 && typeof applySheetTier === 'function') {
-      applySheetTier('tier-peek');
-    }
-    updateCameraViewOffset();
-  }
   updateScrollerUI(index);
 }
 
 function setReadingMode(mode) {
-  if (mode !== 'read' && mode !== 'explore') mode = 'read';
   state.currentMode = mode;
   document.body.className = `mode-${mode} world-${state.currentWorld} motion-${state.motion}`;
 
-  const modeBtns = document.querySelectorAll('.spatial-mode-btn');
-  modeBtns.forEach(btn => {
+  modeButtons.forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mode === mode);
   });
 
   if (mode === 'explore') {
     controls.enabled = true;
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.6;
-    if (focusSurface) focusSurface.classList.remove('open');
-    const fab = document.getElementById('btn-floating-article-fab');
-    if (fab) {
-      fab.classList.remove('active');
-      const icon = document.getElementById('fab-reader-icon');
-      const label = document.getElementById('fab-reader-label');
-      if (icon) icon.textContent = '📖';
-      if (label) label.textContent = 'পড়ুন';
-    }
-    if (hintMessage) hintMessage.textContent = 'ঘুরে দেখুন: সম্পূর্ণ ৩ডি ভিউ ও ফ্রি ক্যামেরা • ড্র্যাগ বা জুম করুন';
-  } else {
-    // Read Mode
+    controls.autoRotateSpeed = 0.8;
+    hintMessage.textContent = 'Explore Mode: Click or drag to orbit objects • Scroll to zoom • Click items to inspect';
+  } else if (mode === 'focus') {
+    controls.enabled = false;
+    controls.autoRotate = false;
+    hintMessage.textContent = 'Focus Mode: Ambient distraction dimmed • Crystal editorial reading';
+  } else if (mode === 'hybrid') {
     controls.enabled = true;
     controls.autoRotate = false;
-    if (focusSurface) focusSurface.classList.add('open');
-    const fab = document.getElementById('btn-floating-article-fab');
-    if (fab) {
-      fab.classList.add('active');
-      const icon = document.getElementById('fab-reader-icon');
-      const label = document.getElementById('fab-reader-label');
-      if (icon) icon.textContent = '✕';
-      if (label) label.textContent = 'বন্ধ';
-    }
-    if (hintMessage) hintMessage.textContent = 'পড়ার মোড: ৩ডি ব্যাকগ্রাউন্ডের সাথে আর্টিকেল পাঠ • পরের/আগের চাপুন';
+    hintMessage.textContent = 'Hybrid Mode: 60% Reading panel + 40% Live 3D spatial view';
+  } else if (mode === 'spatial') {
+    controls.enabled = true;
+    controls.autoRotate = false;
+    hintMessage.textContent = '3D Read Mode: Scroll or swipe to travel through article space';
+    reCenterCamera();
   }
 
   playClickSound();
@@ -1049,18 +1006,10 @@ function setWorld(worldKey) {
   document.body.classList.remove('world-library', 'world-tunnel', 'world-constellation');
   document.body.classList.add(`world-${worldKey}`);
 
-  if (activeWorldName) {
-    activeWorldName.textContent = worldKey === 'library' ? 'Library' : worldKey === 'tunnel' ? 'Tunnel' : 'Constellation';
-  }
+  activeWorldName.textContent = worldKey === 'library' ? 'Library' : worldKey === 'tunnel' ? 'Tunnel' : 'Constellation';
 
-  if (worldOptions && worldOptions.length > 0) {
-    worldOptions.forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.world === worldKey);
-    });
-  }
-
-  document.querySelectorAll('.menu-world-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.world === worldKey);
+  worldOptions.forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.world === worldKey);
   });
 
   navigateToSection(state.currentSection, false);
@@ -1174,128 +1123,55 @@ function loadState() {
 // ─── Event Listeners & Controls ──────────────────────────────────
 
 // Mode button switching
-document.querySelectorAll('.spatial-mode-btn').forEach(btn => {
+modeButtons.forEach(btn => {
   btn.addEventListener('click', () => {
     setReadingMode(btn.dataset.mode);
   });
 });
 
-// World switcher dropdown (Guarded)
-if (btnWorldSelect) {
-  btnWorldSelect.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (worldDropdown) worldDropdown.classList.toggle('open');
-  });
-}
-
-document.addEventListener('click', () => {
-  if (worldDropdown) worldDropdown.classList.remove('open');
+// World switcher dropdown
+btnWorldSelect.addEventListener('click', (e) => {
+  e.stopPropagation();
+  worldDropdown.classList.toggle('open');
 });
 
-if (worldOptions && worldOptions.length > 0) {
-  worldOptions.forEach(opt => {
-    opt.addEventListener('click', () => {
-      setWorld(opt.dataset.world);
-      if (worldDropdown) worldDropdown.classList.remove('open');
-    });
+document.addEventListener('click', () => {
+  worldDropdown.classList.remove('open');
+});
+
+worldOptions.forEach(opt => {
+  opt.addEventListener('click', () => {
+    setWorld(opt.dataset.world);
+    worldDropdown.classList.remove('open');
   });
-}
+});
 
-// Audio & Motion controls (Guarded)
-if (btnToggleAudio) {
-  btnToggleAudio.addEventListener('click', () => {
-    state.audioEnabled = !state.audioEnabled;
-    if (audioIcon) audioIcon.textContent = state.audioEnabled ? '🔊' : '🔇';
-    if (audioLabel) audioLabel.textContent = state.audioEnabled ? 'SFX: ON' : 'SFX: OFF';
-    saveState();
-  });
-}
+// Audio & Motion controls
+btnToggleAudio.addEventListener('click', () => {
+  state.audioEnabled = !state.audioEnabled;
+  audioIcon.textContent = state.audioEnabled ? '🔊' : '🔇';
+  audioLabel.textContent = state.audioEnabled ? 'SFX: ON' : 'SFX: OFF';
+  saveState();
+});
 
-if (btnToggleMotion) {
-  btnToggleMotion.addEventListener('click', () => {
-    if (state.motion === 'full') state.motion = 'reduced';
-    else if (state.motion === 'reduced') state.motion = 'off';
-    else state.motion = 'full';
+btnToggleMotion.addEventListener('click', () => {
+  if (state.motion === 'full') state.motion = 'reduced';
+  else if (state.motion === 'reduced') state.motion = 'off';
+  else state.motion = 'full';
 
-    if (motionLabel) motionLabel.textContent = `Motion: ${state.motion.toUpperCase()}`;
-    document.body.className = `mode-${state.currentMode} world-${state.currentWorld} motion-${state.motion}`;
-    saveState();
-    playClickSound();
-  });
-}
+  motionLabel.textContent = `Motion: ${state.motion.toUpperCase()}`;
+  document.body.className = `mode-${state.currentMode} world-${state.currentWorld} motion-${state.motion}`;
+  saveState();
+  playClickSound();
+});
 
-if (btnResetCam) btnResetCam.addEventListener('click', reCenterCamera);
+btnResetCam.addEventListener('click', reCenterCamera);
 
-// Outline drawer open/close (Guarded)
-if (btnToggleOutline) btnToggleOutline.addEventListener('click', openOutlineDrawer);
-if (btnOpenOutlineThumb) btnOpenOutlineThumb.addEventListener('click', openOutlineDrawer);
-if (btnCloseOutline) btnCloseOutline.addEventListener('click', closeOutlineDrawer);
-if (outlineBackdrop) outlineBackdrop.addEventListener('click', closeOutlineDrawer);
-
-// ─── Floating Article FAB Controller ─────────────────────────────
-function initFloatingArticleFab() {
-  const floatingFab = document.getElementById('btn-floating-article-fab');
-  const closeSurfaceBtn = document.getElementById('btn-close-focus-surface');
-  const surfaceBackdrop = document.getElementById('focus-surface-backdrop');
-  const fabIcon = document.getElementById('fab-reader-icon');
-  const fabLabel = document.getElementById('fab-reader-label');
-
-  function toggleFocusSurface(forceOpen) {
-    if (!focusSurface) return;
-    const shouldOpen = forceOpen !== undefined ? forceOpen : !focusSurface.classList.contains('open');
-    focusSurface.classList.toggle('open', shouldOpen);
-    if (surfaceBackdrop) surfaceBackdrop.classList.toggle('open', shouldOpen);
-    if (floatingFab) {
-      floatingFab.classList.toggle('active', shouldOpen);
-      if (fabIcon) fabIcon.textContent = shouldOpen ? '✕' : '📖';
-      if (fabLabel) fabLabel.textContent = shouldOpen ? 'বন্ধ' : 'পড়ুন';
-      floatingFab.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
-    }
-    updateCameraViewOffset();
-    playTone(shouldOpen ? 620 : 380, 'sine', 0.12, 0.1);
-
-    // Focus Management
-    if (shouldOpen) {
-      setTimeout(() => {
-        const title = document.getElementById('focus-section-title') || document.getElementById('focus-title');
-        if (title) {
-          title.setAttribute('tabindex', '-1');
-          title.focus({ preventScroll: true });
-        }
-      }, 80);
-    } else {
-      if (floatingFab) {
-        floatingFab.focus({ preventScroll: true });
-      }
-    }
-  }
-
-  if (floatingFab) {
-    floatingFab.addEventListener('click', (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      toggleFocusSurface();
-    });
-  }
-
-  if (closeSurfaceBtn) {
-    closeSurfaceBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      toggleFocusSurface(false);
-    });
-  }
-
-  if (surfaceBackdrop) {
-    surfaceBackdrop.addEventListener('click', (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      toggleFocusSurface(false);
-    });
-  }
-
-  window.toggleFocusSurface = toggleFocusSurface;
-}
+// Outline drawer open/close
+btnToggleOutline.addEventListener('click', openOutlineDrawer);
+btnOpenOutlineThumb.addEventListener('click', openOutlineDrawer);
+btnCloseOutline.addEventListener('click', closeOutlineDrawer);
+outlineBackdrop.addEventListener('click', closeOutlineDrawer);
 
 // ─── Slideshow & Scroller Controls ──────────────────────────────
 function initSlideshowControls() {
@@ -1434,17 +1310,17 @@ layerTabs.forEach(tab => {
 });
 
 // Modal close
-if (modalCloseBtn) modalCloseBtn.addEventListener('click', (e) => {
+modalCloseBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   e.preventDefault();
   closeInspectModal();
 });
-if (modalBtnClose) modalBtnClose.addEventListener('click', (e) => {
+modalBtnClose.addEventListener('click', (e) => {
   e.stopPropagation();
   e.preventDefault();
   closeInspectModal();
 });
-if (inspectModal) inspectModal.addEventListener('click', (e) => {
+inspectModal.addEventListener('click', (e) => {
   if (e.target === inspectModal) {
     e.stopPropagation();
     e.preventDefault();
@@ -1453,12 +1329,12 @@ if (inspectModal) inspectModal.addEventListener('click', (e) => {
 });
 
 // Fallback return
-if (btnReturn3d) btnReturn3d.addEventListener('click', () => {
+btnReturn3d.addEventListener('click', () => {
   setReadingMode('spatial');
 });
 
 // Inspect 3D trigger button from surface
-if (btnInspect3d) btnInspect3d.addEventListener('click', () => {
+btnInspect3d.addEventListener('click', () => {
   const sec = ARTICLE_DATA.sections[state.currentSection];
   if (sec.timeline) {
     openInspectModal(
@@ -1482,59 +1358,23 @@ if (btnInspect3d) btnInspect3d.addEventListener('click', () => {
 });
 
 // Debug mode toggle
-if (btnToggleDebug) btnToggleDebug.addEventListener('click', () => {
+btnToggleDebug.addEventListener('click', () => {
   state.debug = !state.debug;
   debugHud.style.display = state.debug ? 'flex' : 'none';
   playClickSound();
 });
 
-// Accessible Keyboard Shortcuts (←/→ navigation, R reading panel, Esc close, M mute, ? help)
+// Keyboard navigation
 window.addEventListener('keydown', (e) => {
-  // Ignore keystrokes inside text inputs or textareas
-  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
-
-  if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
     if (state.currentSection < ARTICLE_DATA.sections.length - 1) {
       e.preventDefault();
       navigateToSection(state.currentSection + 1);
     }
-  } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
     if (state.currentSection > 0) {
       e.preventDefault();
       navigateToSection(state.currentSection - 1);
-    }
-  } else if (e.key === 'r' || e.key === 'R') {
-    e.preventDefault();
-    toggleFocusSurface();
-  } else if (e.key === 'Escape') {
-    e.preventDefault();
-    // Close overlays in hierarchical order
-    const helpModal = document.getElementById('spatial-help-modal');
-    const quickMenu = document.getElementById('spatial-quick-menu');
-    const inspectModal = document.getElementById('spatial-inspect-modal');
-
-    if (helpModal && helpModal.style.display !== 'none') {
-      if (typeof closeHelpModal === 'function') closeHelpModal();
-      else helpModal.style.display = 'none';
-    } else if (quickMenu && quickMenu.style.display !== 'none') {
-      quickMenu.style.display = 'none';
-    } else if (inspectModal && inspectModal.classList.contains('open')) {
-      closeInspectModal();
-    } else if (focusSurface && focusSurface.classList.contains('open')) {
-      toggleFocusSurface(false);
-    }
-  } else if (e.key === 'm' || e.key === 'M') {
-    e.preventDefault();
-    state.audio = !state.audio;
-    updateAudioUI();
-    playTone(state.audio ? 520 : 280, 'sine', 0.1, 0.1);
-  } else if (e.key === '?' || (e.shiftKey && e.key === '/')) {
-    e.preventDefault();
-    if (typeof openHelpModal === 'function') {
-      const helpModal = document.getElementById('spatial-help-modal');
-      const isOpen = helpModal && helpModal.style.display !== 'none';
-      if (isOpen) closeHelpModal();
-      else openHelpModal();
     }
   } else if (e.key === 'Home') {
     e.preventDefault();
@@ -1544,15 +1384,27 @@ window.addEventListener('keydown', (e) => {
     navigateToSection(ARTICLE_DATA.sections.length - 1);
   } else if (e.key === 'd' || e.key === 'D') {
     state.debug = !state.debug;
-    if (debugHud) debugHud.style.display = state.debug ? 'flex' : 'none';
+    debugHud.style.display = state.debug ? 'flex' : 'none';
   }
 });
 
-// Scroll wheel: only zooms 3D canvas via OrbitControls; never switches sections.
-// Panel scrolls its own text with overscroll-behavior: contain.
+// Scroll wheel spatial navigation (Shift+Wheel or over HUD navigates; plain wheel on canvas zooms)
+let wheelAccum = 0;
 window.addEventListener('wheel', (e) => {
-  if (e.target === canvas) {
-    isTransitioning = false; // Disengage programmatic transition on zoom
+  if (state.currentMode === 'focus' || state.currentMode === 'fallback') return;
+  // If user is wheeling over the 3D canvas without Shift key, let OrbitControls smoothly zoom
+  if (e.target === canvas && !e.shiftKey) {
+    isTransitioning = false;
+    return;
+  }
+  wheelAccum += e.deltaY;
+  if (Math.abs(wheelAccum) > 120) {
+    if (wheelAccum > 0 && state.currentSection < ARTICLE_DATA.sections.length - 1) {
+      navigateToSection(state.currentSection + 1);
+    } else if (wheelAccum < 0 && state.currentSection > 0) {
+      navigateToSection(state.currentSection - 1);
+    }
+    wheelAccum = 0;
   }
 }, { passive: true });
 
@@ -1592,95 +1444,40 @@ window.addEventListener('touchend', (e) => {
   }
 }, { passive: true });
 
-// ─── Input Rules: Strict Click vs Drag Discrimination & Throttled Raycast ───
+// Raycasting click detection on 3D objects with strict tap-vs-drag discrimination
 let pointerDownX = 0;
 let pointerDownY = 0;
 let pointerDownTime = 0;
-let isDraggingGesture = false;
-let hasPointerMoved = false;
-let lastClientX = 0;
-let lastClientY = 0;
-let hoveredObject = null;
-let lastHoveredObject = null;
-
-const hoverLabelEl = document.getElementById('spatial-hover-label');
-
-// Setup invisible large hit-meshes for interactive objects
-function ensureInteractiveHitMeshes() {
-  interactiveObjects.forEach(obj => {
-    if (obj.userData && !obj.userData._hasHitbox) {
-      obj.userData._hasHitbox = true;
-      let hitGeo = null;
-      if (obj.geometry) {
-        obj.geometry.computeBoundingBox();
-        const bbox = obj.geometry.boundingBox;
-        if (bbox) {
-          const sz = new THREE.Vector3();
-          bbox.getSize(sz);
-          hitGeo = new THREE.BoxGeometry(
-            Math.max(sz.x * 2.0, 2.2),
-            Math.max(sz.y * 2.0, 2.2),
-            Math.max(sz.z * 2.0, 2.2)
-          );
-        }
-      }
-      if (!hitGeo) {
-        hitGeo = new THREE.SphereGeometry(1.6, 12, 12);
-      }
-      const hitMat = new THREE.MeshBasicMaterial({ visible: false });
-      const hitMesh = new THREE.Mesh(hitGeo, hitMat);
-      hitMesh.userData = { ...obj.userData, _originalTarget: obj };
-      obj.add(hitMesh);
-    }
-  });
-}
 
 window.addEventListener('pointerdown', (e) => {
   if (e.target !== canvas) return;
   pointerDownX = e.clientX;
   pointerDownY = e.clientY;
   pointerDownTime = performance.now();
-  isDraggingGesture = false;
 });
-
-window.addEventListener('pointermove', (e) => {
-  lastClientX = e.clientX;
-  lastClientY = e.clientY;
-  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-  hasPointerMoved = true;
-
-  if (e.target === canvas) {
-    const dist = Math.hypot(e.clientX - pointerDownX, e.clientY - pointerDownY);
-    if (dist >= 6) {
-      isDraggingGesture = true;
-    }
-  }
-}, { passive: true });
 
 window.addEventListener('pointerup', (e) => {
   if (e.target !== canvas) return;
 
-  // Guard 1: Cooldown after closing modal
-  if (performance.now() - lastModalCloseTime < 400) return;
+  // Guard 1: Cooldown after closing modal (prevents accidental immediate re-trigger)
+  if (performance.now() - lastModalCloseTime < 450) return;
 
-  // Guard 2: Movement < 6px and time < 300ms is a click; otherwise it is a drag!
+  // Guard 2: If the pointer moved more than 8px, it was a DRAG/ORBIT gesture, NOT a click
   const dist = Math.hypot(e.clientX - pointerDownX, e.clientY - pointerDownY);
-  const duration = performance.now() - pointerDownTime;
-  if (dist >= 6 || duration >= 300 || isDraggingGesture) {
-    // It is a drag/orbit gesture: nothing opens during drag!
-    return;
-  }
+  if (dist > 8) return;
 
-  // Valid click: execute raycast
+  // Guard 3: If touch held longer than 350ms, it was a hold/drag, NOT a quick tap
+  const duration = performance.now() - pointerDownTime;
+  if (duration > 350) return;
+
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(interactiveObjects, true);
 
   if (intersects.length > 0) {
     let hit = intersects[0].object;
-    if (hit.userData._originalTarget) {
-      hit = hit.userData._originalTarget;
-    }
     while (hit && !hit.userData.type && hit.parent) {
       hit = hit.parent;
     }
@@ -1717,67 +1514,6 @@ window.addEventListener('pointerup', (e) => {
   }
 });
 
-// Throttled RAF Raycasting for Hover Highlights and Tooltip Label
-function updateHoverRaycast() {
-  if (!hasPointerMoved || state.currentMode === 'fallback') return;
-  hasPointerMoved = false;
-
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(interactiveObjects, true);
-
-  let hitTarget = null;
-  if (intersects.length > 0) {
-    let hit = intersects[0].object;
-    if (hit.userData._originalTarget) {
-      hit = hit.userData._originalTarget;
-    }
-    while (hit && !hit.userData.type && hit.parent) {
-      hit = hit.parent;
-    }
-    if (hit && hit.userData.type) {
-      hitTarget = hit;
-    }
-  }
-
-  if (hitTarget !== lastHoveredObject) {
-    // Un-highlight previous
-    if (lastHoveredObject && lastHoveredObject.material) {
-      if (lastHoveredObject.material._origEmissive !== undefined) {
-        lastHoveredObject.material.emissive.setHex(lastHoveredObject.material._origEmissive);
-        lastHoveredObject.material.emissiveIntensity = lastHoveredObject.material._origIntensity;
-      }
-    }
-
-    // Highlight new
-    if (hitTarget && hitTarget.material && hitTarget.material.emissive) {
-      if (hitTarget.material._origEmissive === undefined) {
-        hitTarget.material._origEmissive = hitTarget.material.emissive.getHex();
-        hitTarget.material._origIntensity = hitTarget.material.emissiveIntensity;
-      }
-      hitTarget.material.emissive.setHex(0x00f3ff);
-      hitTarget.material.emissiveIntensity = 1.3;
-      canvas.style.cursor = 'pointer';
-
-      if (hoverLabelEl) {
-        hoverLabelEl.textContent = hitTarget.userData.title || 'Interactive 3D Object';
-        hoverLabelEl.style.left = `${lastClientX}px`;
-        hoverLabelEl.style.top = `${lastClientY}px`;
-        hoverLabelEl.classList.add('visible');
-      }
-    } else {
-      canvas.style.cursor = 'default';
-      if (hoverLabelEl) {
-        hoverLabelEl.classList.remove('visible');
-      }
-    }
-    lastHoveredObject = hitTarget;
-  } else if (hitTarget && hoverLabelEl) {
-    // Update position if still hovering
-    hoverLabelEl.style.left = `${lastClientX}px`;
-    hoverLabelEl.style.top = `${lastClientY}px`;
-  }
-}
-
 // URL Hash listener
 window.addEventListener('hashchange', () => {
   const hash = window.location.hash.replace('#', '');
@@ -1792,8 +1528,7 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  const isMobileDevice = window.innerWidth <= 900 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobileDevice ? 1.5 : 2.0));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
 // ─── Animation & Render Loop ─────────────────────────────────────
@@ -1801,26 +1536,8 @@ let lastTime = performance.now();
 let frameCount = 0;
 let fpsTimer = performance.now();
 
-
-// Pause render loop when tab is hidden to save GPU/CPU resources
-let isLoopRunning = true;
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    isLoopRunning = false;
-  } else {
-    if (!isLoopRunning) {
-      isLoopRunning = true;
-      requestAnimationFrame(animate);
-    }
-  }
-});
-
 function animate(currentTime) {
-  if (!isLoopRunning) return;
   requestAnimationFrame(animate);
-
-  // Throttled raycasting for 3D hover effects (pointer, highlight, label)
-  updateHoverRaycast();
 
   // Smooth Camera Interpolation only during active programmatic transitions
   if (isTransitioning && state.motion !== 'off') {
@@ -1867,457 +1584,154 @@ function animate(currentTime) {
   }
 }
 
-
-// ─── Consolidated Quick Menu Controller ──────────────────────────
-function initQuickMenu() {
-  const menuModal = document.getElementById('spatial-quick-menu');
-  const menuBackdrop = document.getElementById('spatial-menu-backdrop');
-  const btnToggle = document.getElementById('btn-toggle-menu');
-  const btnClose = document.getElementById('btn-close-menu');
-
-  if (!menuModal || !btnToggle) return;
-
-  function toggleMenu(forceOpen) {
-    const isOpen = forceOpen !== undefined ? forceOpen : menuModal.style.display !== 'none';
-    const shouldOpen = !isOpen;
-    menuModal.style.display = shouldOpen ? 'flex' : 'none';
-    if (menuBackdrop) menuBackdrop.style.display = shouldOpen ? 'block' : 'none';
-    btnToggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
-    playTone(shouldOpen ? 520 : 340, 'sine', 0.12, 0.08);
-  }
-
-  btnToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleMenu();
-  });
-
-  if (btnClose) {
-    btnClose.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMenu(false);
-    });
-  }
-
-  if (menuBackdrop) {
-    menuBackdrop.addEventListener('click', () => toggleMenu(false));
-  }
-
-  // World buttons in menu
-  const worldBtns = document.querySelectorAll('.menu-world-btn');
-  worldBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const targetWorld = btn.getAttribute('data-world');
-      setWorld(targetWorld);
-      worldBtns.forEach(b => b.classList.toggle('active', b === btn));
-      toggleMenu(false);
-    });
-  });
-
-  // Audio Toggle in menu
-  const btnAudio = document.getElementById('btn-menu-audio');
-  if (btnAudio) {
-    btnAudio.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleAudio();
-      updateAudioMenuUI();
-    });
-  }
-
-  // Motion Toggle in menu
-  const btnMotion = document.getElementById('btn-menu-motion');
-  if (btnMotion) {
-    btnMotion.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMotion();
-      const txt = document.getElementById('menu-motion-text');
-      if (txt) txt.textContent = `মোশন: ${state.motion === 'full' ? 'ফুল' : state.motion === 'reduced' ? 'সংকুচিত' : 'বন্ধ'}`;
-    });
-  }
-
-  // Re-Center Camera in menu
-  const btnRecenter = document.getElementById('btn-menu-recenter');
-  if (btnRecenter) {
-    btnRecenter.addEventListener('click', (e) => {
-      e.stopPropagation();
-      reCenterCamera();
-      toggleMenu(false);
-    });
-  }
-
-  // 2D Fallback view in menu
-  const btn2D = document.getElementById('btn-menu-fallback-2d');
-  if (btn2D) {
-    btn2D.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMenu(false);
-      openFallback2D();
-    });
-  }
-
-  // Outline Drawer in menu
-  const btnOutline = document.getElementById('btn-menu-outline');
-  if (btnOutline) {
-    btnOutline.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMenu(false);
-      if (typeof toggleOutlineDrawer === 'function') toggleOutlineDrawer(true);
-      else {
-        const drawer = document.getElementById('spatial-outline-drawer');
-        const bdrop = document.getElementById('outline-backdrop');
-        if (drawer) drawer.classList.add('open');
-        if (bdrop) bdrop.classList.add('open');
-      }
-    });
-  }
-
-  // Help in menu
-  const btnHelp = document.getElementById('btn-menu-help');
-  if (btnHelp) {
-    btnHelp.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMenu(false);
-      openHelpModal();
-    });
-  }
-
-  // Zoom buttons in menu
-  const zIn = document.getElementById('btn-menu-zoom-in');
-  const zOut = document.getElementById('btn-menu-zoom-out');
-  const zReset = document.getElementById('btn-menu-zoom-reset');
-
-  if (zIn) {
-    zIn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      zoomCameraBy(0.78);
-    });
-  }
-  if (zOut) {
-    zOut.addEventListener('click', (e) => {
-      e.stopPropagation();
-      zoomCameraBy(1.3);
-    });
-  }
-  if (zReset) {
-    zReset.addEventListener('click', (e) => {
-      e.stopPropagation();
-      reCenterCamera();
-    });
-  }
-
-  window.toggleQuickMenu = toggleMenu;
-}
-
-function updateAudioMenuUI() {
-  const icon = document.getElementById('menu-audio-icon');
-  const text = document.getElementById('menu-audio-text');
-  if (icon) icon.textContent = state.audio ? '🔊' : '🔇';
-  if (text) text.textContent = `সাউন্ড: ${state.audio ? 'চালু' : 'বন্ধ'}`;
-}
-
-// ─── Help & Shortcuts Modal Controller ───────────────────────────
-function initHelpModal() {
-  const helpModal = document.getElementById('spatial-help-modal');
-  const helpBackdrop = document.getElementById('spatial-help-backdrop');
-  const btnClose = document.getElementById('btn-close-help');
-
-  function openHelp(show = true) {
-    if (helpModal) helpModal.style.display = show ? 'flex' : 'none';
-    if (helpBackdrop) helpBackdrop.style.display = show ? 'block' : 'none';
-    playTone(show ? 480 : 320, 'sine', 0.1, 0.08);
-  }
-
-  if (btnClose) btnClose.addEventListener('click', () => openHelp(false));
-  if (helpBackdrop) helpBackdrop.addEventListener('click', () => openHelp(false));
-
-  window.openHelpModal = () => openHelp(true);
-  window.closeHelpModal = () => openHelp(false);
-}
-
-// ─── Bottom Navigation Bar & Progress Dots Controller ───────────
-function initBottomNavDots() {
-  const dotsContainer = document.getElementById('thumb-progress-dots');
-  const prevBtn = document.getElementById('btn-nav-prev');
-  const nextBtn = document.getElementById('btn-nav-next');
-
-  if (dotsContainer) {
-    dotsContainer.innerHTML = '';
-    ARTICLE_DATA.sections.forEach((sec, idx) => {
-      const dot = document.createElement('button');
-      dot.className = `progress-dot ${idx === state.currentSection ? 'active' : ''}`;
-      dot.setAttribute('role', 'tab');
-      dot.setAttribute('aria-selected', idx === state.currentSection ? 'true' : 'false');
-      dot.setAttribute('aria-label', `Jump to Section ${idx + 1}: ${sec.title}`);
-      dot.title = `সেকশন ${idx + 1}: ${sec.title}`;
-      dot.addEventListener('click', (e) => {
-        e.stopPropagation();
-        navigateToSection(idx);
-      });
-      dotsContainer.appendChild(dot);
-    });
-  }
-
-  if (prevBtn) {
-    prevBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (state.currentSection > 0) {
-        navigateToSection(state.currentSection - 1);
-      }
-    });
-  }
-
-  if (nextBtn) {
-    nextBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (state.currentSection < ARTICLE_DATA.sections.length - 1) {
-        navigateToSection(state.currentSection + 1);
-      }
-    });
-  }
-}
-
-function updateBottomNavUI(index) {
-  const dots = document.querySelectorAll('.progress-dot');
-  dots.forEach((dot, idx) => {
-    dot.classList.toggle('active', idx === index);
-    dot.setAttribute('aria-selected', idx === index ? 'true' : 'false');
-  });
-
-  const prevBtn = document.getElementById('btn-nav-prev');
-  const nextBtn = document.getElementById('btn-nav-next');
-  if (prevBtn) prevBtn.disabled = index === 0;
-  if (nextBtn) nextBtn.disabled = index === ARTICLE_DATA.sections.length - 1;
-
-  const chapterBadge = document.getElementById('hud-chapter-badge');
-  const sectionLabel = document.getElementById('hud-section-label');
-  const pageDetail = document.getElementById('hud-page-detail');
-  const currentSec = ARTICLE_DATA.sections[index];
-
-  if (chapterBadge) chapterBadge.textContent = `সেকশন 0${index + 1} / 0${ARTICLE_DATA.sections.length}`;
-  if (sectionLabel && currentSec) sectionLabel.textContent = `সেকশন 0${index + 1} / 0${ARTICLE_DATA.sections.length} · ${currentSec.title.split(':')[0]}`;
-  if (pageDetail && currentSec) pageDetail.textContent = currentSec.title;
-}
-
-function zoomCameraBy(factor) {
-  isTransitioning = false;
-  const offset = new THREE.Vector3().subVectors(camera.position, controls.target);
-  offset.multiplyScalar(factor);
-  const newDist = offset.length();
-  if (newDist >= controls.minDistance && newDist <= controls.maxDistance) {
-    camera.position.addVectors(controls.target, offset);
-    targetCamPos.copy(camera.position);
-    targetCamLook.copy(controls.target);
-    controls.update();
-    playClickSound();
-  }
-}
-
-
-// ─── Camera View Offset on Desktop (Prevent 3D Object Occlusion) ──
-function updateCameraViewOffset() {
-  const isLandscapePhone = window.innerWidth > window.innerHeight && window.innerHeight <= 550;
-  if ((window.innerWidth >= 901 || isLandscapePhone) && focusSurface && focusSurface.classList.contains('open')) {
-    const panelWidth = isLandscapePhone ? Math.min(window.innerWidth * 0.38, 360) : Math.min(Math.max(window.innerWidth * 0.32, 360), 460);
-    // Shift camera frustum so the primary 3D object is centered in the remaining visible space
-    camera.setViewOffset(window.innerWidth, window.innerHeight, -panelWidth / 2, 0, window.innerWidth, window.innerHeight);
-  } else {
-    camera.clearViewOffset();
-  }
-}
-
-// ─── Mobile Bottom Sheet 3-Tier Snapping & Gestures ───────────────
-function initMobileBottomSheet() {
-  const tiers = ['tier-peek', 'tier-half', 'tier-full'];
-  let currentTier = 'tier-peek';
-  
-  // Try to load user preference from localStorage with try/catch
-  try {
-    const savedTier = localStorage.getItem('3d_reader_tier');
-    if (savedTier && tiers.includes(savedTier)) {
-      currentTier = savedTier;
-    }
-  } catch (err) {
-    console.warn('localStorage access failed:', err);
-  }
-
-  function applyTier(tier) {
-    if (!focusSurface) return;
-    tiers.forEach(t => focusSurface.classList.remove(t));
-    focusSurface.classList.add(tier);
-    currentTier = tier;
-    try {
-      localStorage.setItem('3d_reader_tier', tier);
-    } catch (e) {}
-  }
-
-  applyTier(currentTier);
-
-  const handle = document.getElementById('sheet-drag-handle');
-  if (handle) {
-    // Tap / Click handle cycles through tiers
-    handle.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const nextIdx = (tiers.indexOf(currentTier) + 1) % tiers.length;
-      applyTier(tiers[nextIdx]);
-      playTone(460 + nextIdx * 80, 'sine', 0.1, 0.08);
-    });
-
-    // Touch swipe handling on handle
-    let startY = 0;
-    let initialY = 0;
-    handle.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        startY = e.touches[0].clientY;
-        initialY = startY;
-      }
-    }, { passive: true });
-
-    handle.addEventListener('touchend', (e) => {
-      if (e.changedTouches.length === 1) {
-        const deltaY = e.changedTouches[0].clientY - startY;
-        if (deltaY > 60) {
-          // Swiped down
-          if (currentTier === 'tier-full') applyTier('tier-half');
-          else if (currentTier === 'tier-half') applyTier('tier-peek');
-          else if (currentTier === 'tier-peek') toggleFocusSurface(false);
-        } else if (deltaY < -60) {
-          // Swiped up
-          if (currentTier === 'tier-peek') applyTier('tier-half');
-          else if (currentTier === 'tier-half') applyTier('tier-full');
-        }
-      }
-    }, { passive: true });
-  }
-
-  // Expandable Knowledge & Specs button
-  const btnExpandLayers = document.getElementById('btn-expand-layers');
-  const extendedContainer = document.getElementById('extended-layers-container');
-  if (btnExpandLayers && extendedContainer) {
-    btnExpandLayers.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isExpanded = extendedContainer.style.display !== 'none';
-      extendedContainer.style.display = isExpanded ? 'none' : 'flex';
-      btnExpandLayers.classList.toggle('expanded', !isExpanded);
-      btnExpandLayers.setAttribute('aria-expanded', !isExpanded ? 'true' : 'false');
-      playTone(!isExpanded ? 540 : 380, 'sine', 0.1, 0.08);
-    });
-  }
-
-  window.applySheetTier = applyTier;
-}
-
-
-// ─── WebGL Detection & Loading & Onboarding Controller ───────────
-function isWebGLAvailable() {
-  try {
-    const testCanvas = document.createElement('canvas');
-    return !!(window.WebGLRenderingContext && (testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl') || testCanvas.getContext('webgl2')));
-  } catch (e) {
-    return false;
-  }
-}
-
-function initLoadingScreen() {
-  const loadingScreen = document.getElementById('spatial-loading-screen');
-  const barFill = document.getElementById('loading-bar-fill');
-  const statusText = document.getElementById('loading-status-text');
-
-  if (!loadingScreen) return;
-
-  let progress = 0;
-  const timer = setInterval(() => {
-    progress += Math.floor(Math.random() * 25) + 15;
-    if (progress >= 100) {
-      progress = 100;
-      clearInterval(timer);
-      if (barFill) barFill.style.width = '100%';
-      if (statusText) statusText.textContent = 'প্রস্তুত!';
-      setTimeout(() => {
-        loadingScreen.classList.add('fade-out');
-      }, 250);
-    } else {
-      if (barFill) barFill.style.width = `${progress}%`;
-      if (statusText) statusText.textContent = `স্পেস ডেটা লোড হচ্ছে (${progress}%)...`;
-    }
-  }, 50);
-}
-
-function initOnboardingHints() {
-  const toast = document.getElementById('spatial-onboarding-toast');
-  const msgEl = document.getElementById('onboarding-msg');
-  const btnStep = document.getElementById('btn-onboarding-step');
-  const btnSkip = document.getElementById('btn-onboarding-skip');
-
-  const hints = [
-    '১/৩: ৩ডি দৃশ্যটি ঘোরাতে এক আঙুল দিয়ে টেনে দেখো 🧭',
-    '২/৩: ৩ডি তথ্যের জন্য জ্বলজ্বলে বস্তুতে ট্যাপ করো 💡',
-    '৩/৩: পরের অধ্যায়ে যেতে নিচে "পরের" বাটন চাপো ▶'
-  ];
-  let currentStep = 0;
-
-  let seen = false;
-  try {
-    seen = localStorage.getItem('3d_reader_hints_dismissed') === 'true';
-  } catch (e) {}
-
-  if (seen || !toast) return;
-
-  function dismiss() {
-    if (!toast) return;
-    toast.classList.add('fade-out');
-    setTimeout(() => {
-      toast.style.display = 'none';
-      try {
-        localStorage.setItem('3d_reader_hints_dismissed', 'true');
-      } catch (e) {}
-    }, 300);
-  }
-
-  toast.style.display = 'flex';
-  if (msgEl) msgEl.textContent = hints[0];
-
-  if (btnStep) {
-    btnStep.addEventListener('click', (e) => {
-      e.stopPropagation();
-      currentStep++;
-      if (currentStep < hints.length) {
-        if (msgEl) msgEl.textContent = hints[currentStep];
-        if (currentStep === hints.length - 1) {
-          btnStep.textContent = 'বুঝেছি ✓';
-        }
-      } else {
-        dismiss();
-      }
-    });
-  }
-
-  if (btnSkip) {
-    btnSkip.addEventListener('click', (e) => {
-      e.stopPropagation();
-      dismiss();
-    });
-  }
-
-  // Dismiss on first canvas interaction
-  const dismissOnFirstAction = () => {
-    dismiss();
-    window.removeEventListener('pointerdown', dismissOnFirstAction);
-    window.removeEventListener('keydown', dismissOnFirstAction);
+// ─── Side Floating Round Ball (Orb Widget) Controller ──────────
+function initSideOrbWidget() {
+  const widget = document.getElementById('side-floating-orb-widget');
+  const orbBall = document.getElementById('floating-round-ball');
+  const closeBtn = document.getElementById('orb-card-close');
+  const tabBtns = document.querySelectorAll('.orb-tab-btn');
+  const panels = {
+    essential: document.getElementById('orb-panel-essential'),
+    context: document.getElementById('orb-panel-context'),
+    research: document.getElementById('orb-panel-research'),
   };
-  window.addEventListener('pointerdown', dismissOnFirstAction, { once: true });
-  window.addEventListener('keydown', dismissOnFirstAction, { once: true });
-}
 
-function initPermanentHelpButton() {
-  const btn = document.getElementById('btn-permanent-help');
-  if (btn) {
-    btn.addEventListener('click', (e) => {
+  if (!widget || !orbBall) return;
+
+  function toggleOrbCard(e) {
+    if (e) e.stopPropagation();
+    widget.classList.toggle('expanded');
+    playTone(widget.classList.contains('expanded') ? 580 : 380, 'sine', 0.16, 0.12);
+  }
+
+  orbBall.addEventListener('click', toggleOrbCard);
+  orbBall.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleOrbCard(e);
+    }
+  });
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (typeof openHelpModal === 'function') {
-        openHelpModal();
-      }
+      widget.classList.remove('expanded');
+      playTone(340, 'sine', 0.14, 0.08);
     });
   }
+
+  // Layer Tab switching
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const targetLayer = btn.getAttribute('data-orb-layer');
+      tabBtns.forEach(b => b.classList.toggle('active', b === btn));
+      Object.keys(panels).forEach(k => {
+        if (panels[k]) panels[k].classList.toggle('active', k === targetLayer);
+      });
+      playTone(targetLayer === 'essential' ? 440 : targetLayer === 'context' ? 554 : 659, 'sine', 0.12, 0.1);
+    });
+  });
+}
+
+// ─── Spatial Camera Zoom Controls (+, −, ⟲) ───────────────────
+function initSpatialZoomControls() {
+  const btnZoomIn = document.getElementById('btn-zoom-in');
+  const btnZoomOut = document.getElementById('btn-zoom-out');
+  const btnZoomReset = document.getElementById('btn-zoom-reset');
+
+  function zoomCameraBy(factor) {
+    isTransitioning = false;
+    const offset = new THREE.Vector3().subVectors(camera.position, controls.target);
+    offset.multiplyScalar(factor);
+    const newDist = offset.length();
+    if (newDist >= controls.minDistance && newDist <= controls.maxDistance) {
+      camera.position.addVectors(controls.target, offset);
+      targetCamPos.copy(camera.position);
+      targetCamLook.copy(controls.target);
+      controls.update();
+      playClickSound();
+    }
+  }
+
+  if (btnZoomIn) {
+    btnZoomIn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      zoomCameraBy(0.75); // Zoom In
+    });
+  }
+
+  if (btnZoomOut) {
+    btnZoomOut.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      zoomCameraBy(1.35); // Zoom Out
+    });
+  }
+
+  if (btnZoomReset) {
+    btnZoomReset.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const wp = getCameraWaypoint(state.currentSection);
+      targetCamPos.copy(wp.position);
+      targetCamLook.copy(wp.target);
+      isTransitioning = true;
+      playClickSound();
+    });
+  }
+}
+
+// ─── Floating Article Reader FAB Controller ────────────────────────
+function initFloatingArticleFab() {
+  const floatingFab = document.getElementById('btn-floating-article-fab');
+  const closeSurfaceBtn = document.getElementById('btn-close-focus-surface');
+  const surfaceBackdrop = document.getElementById('focus-surface-backdrop');
+  const fabIcon = document.getElementById('fab-reader-icon');
+  const fabLabel = document.getElementById('fab-reader-label');
+
+  if (!focusSurface) return;
+
+  function toggleFocusSurface(forceOpen) {
+    const shouldOpen = forceOpen !== undefined ? forceOpen : !focusSurface.classList.contains('open');
+    focusSurface.classList.toggle('open', shouldOpen);
+    if (surfaceBackdrop) surfaceBackdrop.classList.toggle('open', shouldOpen);
+    if (floatingFab) {
+      floatingFab.classList.toggle('active', shouldOpen);
+      if (fabIcon) fabIcon.textContent = shouldOpen ? '✕' : '📖';
+      if (fabLabel) fabLabel.textContent = shouldOpen ? 'Close Text' : 'Read Article';
+    }
+    playTone(shouldOpen ? 620 : 380, 'sine', 0.12, 0.1);
+  }
+
+  if (floatingFab) {
+    floatingFab.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleFocusSurface();
+    });
+  }
+
+  if (closeSurfaceBtn) {
+    closeSurfaceBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleFocusSurface(false);
+    });
+  }
+
+  if (surfaceBackdrop) {
+    surfaceBackdrop.addEventListener('click', () => {
+      toggleFocusSurface(false);
+    });
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && focusSurface.classList.contains('open')) {
+      toggleFocusSurface(false);
+    }
+  });
+
+  window.toggleFocusSurface = toggleFocusSurface;
 }
 
 // ─── Initializer ─────────────────────────────────────────────────
@@ -2344,32 +1758,18 @@ function init() {
   slideProgress = state.currentSection;
   targetSlideProgress = state.currentSection;
 
-  // Initialize Simplified UI Controls (Commit 1)
-  initQuickMenu();
-  initHelpModal();
-  initBottomNavDots();
+  // Initialize Slideshow & Scroller Controls
+  initSlideshowControls();
+  updateScrollerUI(slideProgress);
+
+  // Initialize Side Floating Orb Widget
+  initSideOrbWidget();
+  // Initialize Spatial Zoom Controls (+, −, ⟲)
+  initSpatialZoomControls();
+  // Initialize Floating Article FAB Controller
   initFloatingArticleFab();
-  initMobileBottomSheet();
-  ensureInteractiveHitMeshes();
-
-  // Check WebGL availability
-  if (!isWebGLAvailable()) {
-    const failBanner = document.getElementById('webgl-fail-banner');
-    if (failBanner) failBanner.style.display = 'flex';
-    setReadingMode('fallback');
-  }
-
-  initLoadingScreen();
-  initOnboardingHints();
-  initPermanentHelpButton();
-  updateCameraViewOffset();
-  updateBottomNavUI(state.currentSection);
 
   animate(performance.now());
 }
 
 init();
-
-window.addEventListener('resize', () => {
-  updateCameraViewOffset();
-});
