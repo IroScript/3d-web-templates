@@ -40,3 +40,22 @@
 {"level":"info","run_id":"6632a51d-b15c-46d1-b062-1f0a57592aaa","component":"TCP Connectivity","target":"region2.v2.argotunnel.com","status":"pass","details":"HTTP/2 connection successful","time":"2026-09-20T16:25:29Z","message":"precheck"}
 {"level":"info","run_id":"6632a51d-b15c-46d1-b062-1f0a57592aaa","component":"Cloudflare API","target":"api.cloudflare.com:443","status":"pass","details":"API is reachable","time":"2026-09-20T16:25:29Z","message":"precheck"}
 {"level":"info","run_id":"6632a51d-b15c-46d1-b062-1f0a57592aaa","hard_fail":false,"suggested_protocol":"quic","time":"2026-09-20T16:25:29Z","message":"precheck complete"}
+{"level":"warn","time":"2026-09-21T16:25:23Z","message":"Your version 2026.8.2 is outdated. We recommend upgrading it to 2026.9.1"}
+{"level":"warn","time":"2026-09-22T16:25:23Z","message":"Your version 2026.8.2 is outdated. We recommend upgrading it to 2026.9.1"}
+{"level":"error","event":0,"ip":"198.41.200.53","connIndex":0,"error":"failed to accept QUIC stream: Application error 0x0 (remote)","time":"2026-09-23T09:00:02Z","message":"failed to accept incoming stream requests"}
+{"level":"error","event":0,"ip":"198.41.200.53","connIndex":0,"error":"Application error 0x0 (remote)","time":"2026-09-23T09:00:02Z","message":"failed to run the datagram handler"}
+{"level":"error","event":0,"ip":"198.41.200.53","connIndex":0,"error":"accept stream listener encountered a failure while serving","time":"2026-09-23T09:00:02Z","message":"failed to serve tunnel connection"}
+{"level":"error","event":0,"ip":"198.41.200.53","connIndex":0,"error":"accept stream listener encountered a failure while serving","time":"2026-09-23T09:00:02Z","message":"Serve tunnel error"}
+{"level":"info","event":0,"ip":"198.41.200.53","connIndex":0,"time":"2026-09-23T09:00:02Z","message":"Retrying connection in up to 1s"}
+{"level":"info","event":0,"ip":"198.41.200.53","connIndex":0,"time":"2026-09-23T09:00:04Z","message":"Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256]"}
+{"level":"error","event":0,"ip":"198.41.200.53","connIndex":0,"error":"failed to dial to edge with quic: timeout: no recent network activity","time":"2026-09-23T09:00:09Z","message":"Failed to dial a quic connection"}
+{"level":"info","event":0,"ip":"198.41.200.53","connIndex":0,"time":"2026-09-23T09:00:09Z","message":"Retrying connection in up to 4s"}
+{"level":"info","event":0,"ip":"198.41.192.47","connIndex":0,"time":"2026-09-23T09:00:10Z","message":"Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256]"}
+{"level":"error","event":0,"ip":"198.41.192.47","connIndex":0,"error":"failed to accept QUIC stream: Application error 0x0 (remote)","time":"2026-09-23T09:00:11Z","message":"failed to accept incoming stream requests"}
+{"level":"error","event":0,"ip":"198.41.192.47","connIndex":0,"error":"Application error 0x0 (remote)","time":"2026-09-23T09:00:11Z","message":"failed to run the datagram handler"}
+{"level":"error","event":0,"ip":"198.41.192.47","connIndex":0,"error":"control stream encountered a failure while serving","time":"2026-09-23T09:00:11Z","message":"failed to serve tunnel connection"}
+{"level":"error","event":0,"ip":"198.41.192.47","connIndex":0,"error":"control stream encountered a failure while serving","time":"2026-09-23T09:00:11Z","message":"Serve tunnel error"}
+{"level":"info","event":0,"ip":"198.41.192.47","connIndex":0,"time":"2026-09-23T09:00:11Z","message":"Retrying connection in up to 8s"}
+{"level":"info","event":0,"ip":"198.41.192.47","connIndex":0,"time":"2026-09-23T09:00:18Z","message":"Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256]"}
+{"level":"info","event":0,"connection":"db937532-f041-4a46-b37d-dd97bcb18eae","connIndex":0,"location":"ord14","ip":"198.41.192.47","protocol":"quic","time":"2026-09-23T09:00:18Z","message":"Registered tunnel connection"}
+{"level":"warn","time":"2026-09-23T16:25:23Z","message":"Your version 2026.8.2 is outdated. We recommend upgrading it to 2026.9.1"}
