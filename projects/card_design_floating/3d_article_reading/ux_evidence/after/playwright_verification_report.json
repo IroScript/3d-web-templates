@@ -8,11 +8,11 @@
       "size_failures": [],
       "overlap_failures": [],
       "panel_eval": {
-        "panelOpen": false,
+        "panelOpen": true,
         "panelWidth": 340,
-        "panelHeight": 328,
+        "panelHeight": 141,
         "isDockedRight": false,
-        "freeAreaRatio": 49
+        "freeAreaRatio": 78
       },
       "status": "PASS"
     },
@@ -23,11 +23,11 @@
       "size_failures": [],
       "overlap_failures": [],
       "panel_eval": {
-        "panelOpen": false,
+        "panelOpen": true,
         "panelWidth": 370,
-        "panelHeight": 311,
+        "panelHeight": 186,
         "isDockedRight": false,
-        "freeAreaRatio": 63
+        "freeAreaRatio": 78
       },
       "status": "PASS"
     },
@@ -38,11 +38,11 @@
       "size_failures": [],
       "overlap_failures": [],
       "panel_eval": {
-        "panelOpen": false,
+        "panelOpen": true,
         "panelWidth": 748,
-        "panelHeight": 257,
+        "panelHeight": 225,
         "isDockedRight": false,
-        "freeAreaRatio": 75
+        "freeAreaRatio": 78
       },
       "status": "PASS"
     },
@@ -53,7 +53,7 @@
       "size_failures": [],
       "overlap_failures": [],
       "panel_eval": {
-        "panelOpen": false,
+        "panelOpen": true,
         "panelWidth": 321,
         "panelHeight": 282,
         "isDockedRight": true,
@@ -64,11 +64,11 @@
     {
       "viewport": "1366x768",
       "dimensions": "1366x768",
-      "controls_count": 8,
+      "controls_count": 16,
       "size_failures": [],
       "overlap_failures": [],
       "panel_eval": {
-        "panelOpen": false,
+        "panelOpen": true,
         "panelWidth": 437,
         "panelHeight": 598,
         "isDockedRight": true,
@@ -79,11 +79,11 @@
     {
       "viewport": "1920x1080",
       "dimensions": "1920x1080",
-      "controls_count": 8,
+      "controls_count": 16,
       "size_failures": [],
       "overlap_failures": [],
       "panel_eval": {
-        "panelOpen": false,
+        "panelOpen": true,
         "panelWidth": 460,
         "panelHeight": 910,
         "isDockedRight": true,

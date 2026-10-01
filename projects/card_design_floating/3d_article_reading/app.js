@@ -886,15 +886,20 @@ function updateSectionMetadata(index, updateHash = true) {
   // Update Ambient Glow
   spaceAmbientGlow.style.background = `radial-gradient(circle at 50% 50%, ${section.color}26 0%, ${section.accentColor}14 35%, transparent 70%)`;
 
-  // Update HUD elements
-  hudArticleTitle.textContent = section.title;
-  hudChapterBadge.textContent = `SLIDE 0${index + 1} / 0${ARTICLE_DATA.sections.length}`;
-  hudPageDetail.textContent = section.spatialZone;
+  // Update HUD elements (Guarded)
+  if (hudArticleTitle) hudArticleTitle.textContent = section.title;
+  const chapterBadge = document.getElementById('hud-chapter-badge');
+  if (chapterBadge) chapterBadge.textContent = `সেকশন 0${index + 1} / 0${ARTICLE_DATA.sections.length}`;
+  const sectionLabel = document.getElementById('hud-section-label');
+  if (sectionLabel) sectionLabel.textContent = `সেকশন 0${index + 1} / 0${ARTICLE_DATA.sections.length} · ${section.title.split(':')[0]}`;
+  const pageDetail = document.getElementById('hud-page-detail');
+  if (pageDetail) pageDetail.textContent = section.title;
+
   const progressPct = ((index + 1) / ARTICLE_DATA.sections.length) * 100;
-  hudProgressFill.style.width = `${progressPct}%`;
-  outlineProgressFill.style.width = `${progressPct}%`;
-  outlineSectionLabel.textContent = `Slide ${index + 1} of ${ARTICLE_DATA.sections.length}`;
-  outlinePercentage.textContent = `${Math.round(progressPct)}% Read`;
+  if (hudProgressFill) hudProgressFill.style.width = `${progressPct}%`;
+  if (outlineProgressFill) outlineProgressFill.style.width = `${progressPct}%`;
+  if (outlineSectionLabel) outlineSectionLabel.textContent = `Slide ${index + 1} of ${ARTICLE_DATA.sections.length}`;
+  if (outlinePercentage) outlinePercentage.textContent = `${Math.round(progressPct)}% Read`;
 
   // Update Spatial Focus Surface Content
   focusZoneTag.textContent = section.spatialZone;
@@ -1044,10 +1049,18 @@ function setWorld(worldKey) {
   document.body.classList.remove('world-library', 'world-tunnel', 'world-constellation');
   document.body.classList.add(`world-${worldKey}`);
 
-  activeWorldName.textContent = worldKey === 'library' ? 'Library' : worldKey === 'tunnel' ? 'Tunnel' : 'Constellation';
+  if (activeWorldName) {
+    activeWorldName.textContent = worldKey === 'library' ? 'Library' : worldKey === 'tunnel' ? 'Tunnel' : 'Constellation';
+  }
 
-  worldOptions.forEach(opt => {
-    opt.classList.toggle('active', opt.dataset.world === worldKey);
+  if (worldOptions && worldOptions.length > 0) {
+    worldOptions.forEach(opt => {
+      opt.classList.toggle('active', opt.dataset.world === worldKey);
+    });
+  }
+
+  document.querySelectorAll('.menu-world-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.world === worldKey);
   });
 
   navigateToSection(state.currentSection, false);
@@ -1167,49 +1180,122 @@ document.querySelectorAll('.spatial-mode-btn').forEach(btn => {
   });
 });
 
-// World switcher dropdown
-btnWorldSelect.addEventListener('click', (e) => {
-  e.stopPropagation();
-  worldDropdown.classList.toggle('open');
-});
+// World switcher dropdown (Guarded)
+if (btnWorldSelect) {
+  btnWorldSelect.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (worldDropdown) worldDropdown.classList.toggle('open');
+  });
+}
 
 document.addEventListener('click', () => {
-  worldDropdown.classList.remove('open');
+  if (worldDropdown) worldDropdown.classList.remove('open');
 });
 
-worldOptions.forEach(opt => {
-  opt.addEventListener('click', () => {
-    setWorld(opt.dataset.world);
-    worldDropdown.classList.remove('open');
+if (worldOptions && worldOptions.length > 0) {
+  worldOptions.forEach(opt => {
+    opt.addEventListener('click', () => {
+      setWorld(opt.dataset.world);
+      if (worldDropdown) worldDropdown.classList.remove('open');
+    });
   });
-});
+}
 
-// Audio & Motion controls
-btnToggleAudio.addEventListener('click', () => {
-  state.audioEnabled = !state.audioEnabled;
-  audioIcon.textContent = state.audioEnabled ? '🔊' : '🔇';
-  audioLabel.textContent = state.audioEnabled ? 'SFX: ON' : 'SFX: OFF';
-  saveState();
-});
+// Audio & Motion controls (Guarded)
+if (btnToggleAudio) {
+  btnToggleAudio.addEventListener('click', () => {
+    state.audioEnabled = !state.audioEnabled;
+    if (audioIcon) audioIcon.textContent = state.audioEnabled ? '🔊' : '🔇';
+    if (audioLabel) audioLabel.textContent = state.audioEnabled ? 'SFX: ON' : 'SFX: OFF';
+    saveState();
+  });
+}
 
-btnToggleMotion.addEventListener('click', () => {
-  if (state.motion === 'full') state.motion = 'reduced';
-  else if (state.motion === 'reduced') state.motion = 'off';
-  else state.motion = 'full';
+if (btnToggleMotion) {
+  btnToggleMotion.addEventListener('click', () => {
+    if (state.motion === 'full') state.motion = 'reduced';
+    else if (state.motion === 'reduced') state.motion = 'off';
+    else state.motion = 'full';
 
-  motionLabel.textContent = `Motion: ${state.motion.toUpperCase()}`;
-  document.body.className = `mode-${state.currentMode} world-${state.currentWorld} motion-${state.motion}`;
-  saveState();
-  playClickSound();
-});
+    if (motionLabel) motionLabel.textContent = `Motion: ${state.motion.toUpperCase()}`;
+    document.body.className = `mode-${state.currentMode} world-${state.currentWorld} motion-${state.motion}`;
+    saveState();
+    playClickSound();
+  });
+}
 
-btnResetCam.addEventListener('click', reCenterCamera);
+if (btnResetCam) btnResetCam.addEventListener('click', reCenterCamera);
 
-// Outline drawer open/close
-btnToggleOutline.addEventListener('click', openOutlineDrawer);
-btnOpenOutlineThumb.addEventListener('click', openOutlineDrawer);
-btnCloseOutline.addEventListener('click', closeOutlineDrawer);
-outlineBackdrop.addEventListener('click', closeOutlineDrawer);
+// Outline drawer open/close (Guarded)
+if (btnToggleOutline) btnToggleOutline.addEventListener('click', openOutlineDrawer);
+if (btnOpenOutlineThumb) btnOpenOutlineThumb.addEventListener('click', openOutlineDrawer);
+if (btnCloseOutline) btnCloseOutline.addEventListener('click', closeOutlineDrawer);
+if (outlineBackdrop) outlineBackdrop.addEventListener('click', closeOutlineDrawer);
+
+// ─── Floating Article FAB Controller ─────────────────────────────
+function initFloatingArticleFab() {
+  const floatingFab = document.getElementById('btn-floating-article-fab');
+  const closeSurfaceBtn = document.getElementById('btn-close-focus-surface');
+  const surfaceBackdrop = document.getElementById('focus-surface-backdrop');
+  const fabIcon = document.getElementById('fab-reader-icon');
+  const fabLabel = document.getElementById('fab-reader-label');
+
+  function toggleFocusSurface(forceOpen) {
+    if (!focusSurface) return;
+    const shouldOpen = forceOpen !== undefined ? forceOpen : !focusSurface.classList.contains('open');
+    focusSurface.classList.toggle('open', shouldOpen);
+    if (surfaceBackdrop) surfaceBackdrop.classList.toggle('open', shouldOpen);
+    if (floatingFab) {
+      floatingFab.classList.toggle('active', shouldOpen);
+      if (fabIcon) fabIcon.textContent = shouldOpen ? '✕' : '📖';
+      if (fabLabel) fabLabel.textContent = shouldOpen ? 'বন্ধ' : 'পড়ুন';
+      floatingFab.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+    }
+    updateCameraViewOffset();
+    playTone(shouldOpen ? 620 : 380, 'sine', 0.12, 0.1);
+
+    // Focus Management
+    if (shouldOpen) {
+      setTimeout(() => {
+        const title = document.getElementById('focus-section-title') || document.getElementById('focus-title');
+        if (title) {
+          title.setAttribute('tabindex', '-1');
+          title.focus({ preventScroll: true });
+        }
+      }, 80);
+    } else {
+      if (floatingFab) {
+        floatingFab.focus({ preventScroll: true });
+      }
+    }
+  }
+
+  if (floatingFab) {
+    floatingFab.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      toggleFocusSurface();
+    });
+  }
+
+  if (closeSurfaceBtn) {
+    closeSurfaceBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      toggleFocusSurface(false);
+    });
+  }
+
+  if (surfaceBackdrop) {
+    surfaceBackdrop.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      toggleFocusSurface(false);
+    });
+  }
+
+  window.toggleFocusSurface = toggleFocusSurface;
+}
 
 // ─── Slideshow & Scroller Controls ──────────────────────────────
 function initSlideshowControls() {
@@ -1348,17 +1434,17 @@ layerTabs.forEach(tab => {
 });
 
 // Modal close
-modalCloseBtn.addEventListener('click', (e) => {
+if (modalCloseBtn) modalCloseBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   e.preventDefault();
   closeInspectModal();
 });
-modalBtnClose.addEventListener('click', (e) => {
+if (modalBtnClose) modalBtnClose.addEventListener('click', (e) => {
   e.stopPropagation();
   e.preventDefault();
   closeInspectModal();
 });
-inspectModal.addEventListener('click', (e) => {
+if (inspectModal) inspectModal.addEventListener('click', (e) => {
   if (e.target === inspectModal) {
     e.stopPropagation();
     e.preventDefault();
@@ -1367,12 +1453,12 @@ inspectModal.addEventListener('click', (e) => {
 });
 
 // Fallback return
-btnReturn3d.addEventListener('click', () => {
+if (btnReturn3d) btnReturn3d.addEventListener('click', () => {
   setReadingMode('spatial');
 });
 
 // Inspect 3D trigger button from surface
-btnInspect3d.addEventListener('click', () => {
+if (btnInspect3d) btnInspect3d.addEventListener('click', () => {
   const sec = ARTICLE_DATA.sections[state.currentSection];
   if (sec.timeline) {
     openInspectModal(
@@ -1396,7 +1482,7 @@ btnInspect3d.addEventListener('click', () => {
 });
 
 // Debug mode toggle
-btnToggleDebug.addEventListener('click', () => {
+if (btnToggleDebug) btnToggleDebug.addEventListener('click', () => {
   state.debug = !state.debug;
   debugHud.style.display = state.debug ? 'flex' : 'none';
   playClickSound();
